@@ -1,0 +1,31 @@
+{
+    "manifest_version": 2,
+    "name": "My Extensions",
+    "version": "1.0",
+    "description" : "Base Level Extension",
+    "browser_action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "persistent": false,
+        "scripts": ["background.js"]        
+    },
+    "permissions": [
+        "storage",
+        "declarativeContent",
+        "activeTab"
+    ],
+    "options_page": "options.html",
+    "content_scripts": [{
+        "matches": [
+            "*://bbs.ruliweb.com/best*",
+            "*://www.dogdrip.net/"
+        ],
+        "exclude_matches": [
+            "*://bbs.ruliweb.com/best/board/*"
+        ],
+        "js": [
+            "script.js"
+        ]
+    }]
+}
