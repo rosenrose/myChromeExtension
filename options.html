@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset='utf-8'>
         <style>
             button.colorBtn {
                 height: 50px;
@@ -8,16 +9,68 @@
                 outline: none;
                 margin: 10px;
             }
+            table {
+                display: inline-block;
+                text-align: center;
+                border-collapse: collapse;
+            }
+            td {
+                border: 1px solid black;
+                font-size: 20px;
+                padding: 5px;
+            }
+            #ruliweb,#dogdrip{
+                display: inline-block;
+                border: 1px solid black;
+                padding: 5px;
+            }
         </style>
     </head>
     <body>
         <div id="buttonDiv">
         </div>
-        <div id="list">
+        <div id="ruliweb">
+            <div id="list"></div>
+            <p></p>
+            <input type="text" id="add" style="width: 200px;"><button type="button" id="addButton">add</button>
+            <input type="text" id="del" style="width: 200px;"><button type="button" id="delButton">del</button>
+            <button type="button" id="resetButton">reset</button>
         </div>
-        <input type="text" id="add" style="width: 200px;"><button type="button" id="addButton">add</button>
-        <input type="text" id="del" style="width: 200px;"><button type="button" id="delButton">del</button>
-        <button type="button" id="resetButton">reset</button>
+        <p></p>
+        <div id="dogdrip">
+            <table>
+                <tr><td rowspan="2"></td><td></td></tr>
+                <tr><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td></tr>
+            </table>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <table>
+                <tr><td rowspan="2">&nbsp;</td><td>&nbsp;</td></tr>
+                <tr><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td><td><select></select></td></tr>
+                <tr><td><select></select></td></tr>
+            </table>
+            <button type="button" id="resetButton2">reset</button>
+        </div>
     </body>
     <script src="options.js"></script>
 </html>
