@@ -73,22 +73,19 @@ async function init() {
     bottom_boards = dogdripMain[5].querySelectorAll("div > div.xe-widget-wrapper");
 
     tableTds = document.querySelector("table").querySelectorAll("td");
-    for (let i=0; i<tableTds.length; i++) {
-        tableTds[i].id = `board${i}`;
-    }
     for (let i=0; i<top_boards.length; i++) {
         boardName = top_boards[i].querySelector("a.eq.link").text;
-        document.querySelector(`#board${i}`).innerText = boardName;
+        tableTds[i].innerText = boardName;
         boardList.push(boardName);
     }
     for (let i=2; i<4; i++) {
         boardName = dogdripMain[i].querySelector("a.eq.link").text;
-        document.querySelector(`#board${i+1}`).innerText = boardName;
+        tableTds[i+1].innerText = boardName;
         boardList.push(boardName);
     }
     for (let i=0; i<bottom_boards.length; i++) {
         boardName = bottom_boards[i].querySelector("a.eq.link").text;
-        document.querySelector(`#board${i+5}`).innerText = boardName;
+        tableTds[i+5].innerText = boardName;
         boardList.push(boardName);
     }
     boardList = boardList.slice(2,boardList.length);
