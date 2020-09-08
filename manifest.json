@@ -4,7 +4,7 @@
     "version": "1.0",
     "description" : "Base Level Extension",
     "browser_action": {
-        "default_popup": "popup.html"
+        "default_popup": "options.html"
     },
     "background": {
         "persistent": false,
@@ -13,19 +13,25 @@
     "permissions": [
         "storage",
         "declarativeContent",
-        "activeTab"
+        "activeTab",
+        "tabs",
+        "webNavigation",
+		"contextMenus"
     ],
     "options_page": "options.html",
     "content_scripts": [{
         "matches": [
             "*://bbs.ruliweb.com/best*",
-            "*://www.dogdrip.net/"
+            "*://www.dogdrip.net/*",
+            "*://namu.wiki/*"
         ],
         "exclude_matches": [
-            "*://bbs.ruliweb.com/best/board/*"
         ],
         "js": [
             "script.js"
+        ],
+		"css":[
+            "style.css"
         ]
     }]
 }
