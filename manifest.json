@@ -16,21 +16,18 @@
         "activeTab",
         "tabs",
         "webNavigation",
-		"contextMenus"
+        "contextMenus"
     ],
     "options_page": "options.html",
     "content_scripts": [{
         "matches": [
-            "*://bbs.ruliweb.com/best*",
-            "*://www.dogdrip.net/*",
-            "*://namu.wiki/*"
+            "*://*/*"
         ],
-        "exclude_matches": [
-        ],
+        "exclude_matches": [],
         "js": [
             "script.js"
         ],
-		"css":[
+        "css":[
             "style.css"
         ]
     }]

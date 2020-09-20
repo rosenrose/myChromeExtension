@@ -23,6 +23,13 @@ function appendUser(userList, user) {
     btn.type = "button";
     btn.className = "delUser";
     btn.textContent = "del";
+    btn.addEventListener("click", event => {
+        let code = event.target.previousElementSibling.textContent;
+        let idx = banList.user.findIndex(user => user.code == code);
+        if (idx > -1) banList.user.splice(idx, 1);
+        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
+        save();
+    });
     li.appendChild(name);
     li.appendChild(code);
     li.appendChild(btn);
@@ -38,6 +45,13 @@ function appendWord(wordList, word) {
     btn.type = "button";
     btn.className = "delWord";
     btn.textContent = "del";
+    btn.addEventListener("click", event => {
+        let word = event.target.previousElementSibling.textContent;
+        let idx = banList.word.indexOf(word);
+        if (idx > -1) banList.word.splice(idx, 1);
+        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
+        save();
+    });
     li.appendChild(name);
     li.appendChild(btn);
     wordList.appendChild(li);
@@ -46,7 +60,7 @@ function appendWord(wordList, word) {
 document.querySelector("#addUser").addEventListener("click", () => {
     let name = document.querySelector("#addNameInput").value.trim();
     let code = document.querySelector("#addCodeInput").value.trim();
-    let idx = banList.user.indexOf(banList.user.find(user => user.code == code));
+    let idx = banList.user.findIndex(user => user.code == code);
     if (idx > -1) {
         banList.user[idx].name = name;
         document.querySelector(`li#${code} span`).textContent = name;
@@ -58,17 +72,6 @@ document.querySelector("#addUser").addEventListener("click", () => {
     save();
 });
 
-for (let delUser of document.querySelectorAll(".delUser")) {
-    delUser.addEventListener("click", event => {
-        let code = event.target.previousElementSibling.textContent;
-        console.log("code")
-        let idx = banList.user.indexOf(banList.user.find(user => user.code == code));
-        if (idx > -1) banList.user.splice(idx, 1);
-        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
-        save();
-    });
-}
-
 document.querySelector("#resetUser").addEventListener("click", () => {
     banList.user = [];
     save();
@@ -77,30 +80,20 @@ document.querySelector("#resetUser").addEventListener("click", () => {
 
 document.querySelector("#addWord").addEventListener("click", () => {
     let word = document.querySelector("#addWordInput").value.trim();
-    banList.word.add(word);
+    banList.word.push(word);
     appendWord(document.querySelector("#wordList"), word);
     save();
 });
 
-for (let delWord of document.querySelectorAll(".delWord")) {
-    delWord.addEventListener("click", event => {
-        let word = event.target.previousElementSibling.textContent;
-        console.log("dd")
-        banList.word.delete(word);
-        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
-        save();
-    });
-}
-
 document.querySelector("#resetWord").addEventListener("click", () => {
-    banList.word = new Set();
+    banList.word = [];
     save();
     window.location.reload();
 });
 
 let boardList = [];
 let userBoardList = [];
-let draggables = Array.from(document.querySelectorAll("#user td")).slice(2);
+let draggables = [...document.querySelectorAll("#user td")].slice(2);
 let dragged;
 
 fetch("https://www.dogdrip.net/")
@@ -108,7 +101,7 @@ fetch("https://www.dogdrip.net/")
 .then(content => {
     content = new DOMParser().parseFromString(content,"text/html");
     boardList = content.querySelectorAll("div.eq.overflow-hidden");
-    boardList = Array.from(boardList).map(board => board.querySelector("a.eq.link").textContent.trim());
+    boardList = [...boardList].map(board => board.querySelector("a.eq.link").textContent.trim());
 
     for (let i=0; i<2; i++) {
         document.querySelectorAll("#original td")[i].textContent = boardList[i];
@@ -213,7 +206,7 @@ document.querySelector("#resetButton").addEventListener("click", () => {
 
 function save() {
     banList.user.sort((a,b) => {if(a.name>b.name) return 1; if(a.name<b.name) return -1; return 0;});
-    banList.word = new Set(Array.from(banList.word).sort());
+    banList.word.sort();
     chrome.storage.sync.set({banList: banList}, ()=>{});
     chrome.storage.sync.set({userBoardList: userBoardList}, ()=>{});
 }
