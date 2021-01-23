@@ -3,10 +3,10 @@
     <head>
         <meta charset='utf-8'>
         <style>
-            /* body {
-                width: 1280px;
-                height: 800px;
-            } */
+            body {
+                width: 1920px;
+                height: 1080px;
+            }
             table {
                 display: inline-block;
                 text-align: center;
@@ -21,8 +21,18 @@
             button {
                 background-color: pink;
             }
-            li {
+            ol {
+                margin: 0;
+                padding-left: 25px;
+            }
+            ol li {
+                padding-left: 10px;
+                border-bottom: solid 2px #888;
+            }
+            ul {
                 list-style: none;
+                margin: 0;
+                padding: 0;
             }
             #ruliweb, #dogdrip {
                 float: left;
@@ -40,48 +50,82 @@
             #ruliweb span {
                 display: inline-block;
             }
-            #ruliweb span.name {
-                width: 150px;
+            #banUser span.name {
+                width: 200px;
             }
-            #ruliweb span.code {
+            #banUser span.code {
                 width: 50px;
+            }
+            #banWord {
+                width: 400px;
+            }
+            #banWord span.name {
+                width: 180px;
+            }
+            #replaceWord input {
+                width: 130px;
+                margin: 1px;
+            }
+            #replaceWord input.original, input.replace {
+                font-size: 1.2em;
+            }
+            #replaceWord input.original {
+                width: 180px;
+            }
+            #replaceWord input.replace {
+                width: 120px;
             }
         </style>
     </head>
     <body>
         <div id="ruliweb">
             <div id="banUser">
-                <div id="userList"></div>
+                <div id="userList">
+                    <ol></ol>
+                </div>
                 <p></p>
                 <input type="text" id="addNameInput" placeholder="name"><br>
                 <input type="text" id="addCodeInput" placeholder="code"><button type="button" id="addUser">add</button>
                 <p></p>
                 <button type="button" id="resetUser">reset</button>
+                <button type="button" id="updateUser">update</button>
             </div>
             <div id="banWord">
-                <div id="wordList"></div>
+                <div id="wordList">
+                    <ul></ul>
+                </div>
                 <p></p>
                 <input type="text" id="addWordInput"><button type="button" id="addWord">add</button>
                 <p></p>
                 <button type="button" id="resetWord">reset</button>
             </div>
+            <p><hr></p>
+            <div id="replaceWord">
+                <div id="replaceList">
+                    <ul></ul>
+                </div>
+                <p></p>
+                <input type="text" id="addReplaceInput1"><input type="text" id="addReplaceInput2"><button type="button" id="addReplace">add</button>
+                <p></p>
+                <button type="button" id="resetReplace">reset</button>
+            </div>
         </div>
         <div id="dogdrip">
             <table id="original">
                 <tr><td rowspan="2"></td><td></td></tr>
-                <tr><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td><td><label><input type="checkbox"></label></td></tr>
-                <tr><td><label><input type="checkbox"></label></td></tr>
+                <tr><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td></tr>
             </table>
             <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
             <table id="user">
