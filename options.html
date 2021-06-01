@@ -4,8 +4,7 @@
         <meta charset='utf-8'>
         <style>
             body {
-                width: 1920px;
-                height: 1080px;
+                width: 1895px;
             }
             table {
                 display: inline-block;
@@ -50,29 +49,33 @@
             #ruliweb span {
                 display: inline-block;
             }
-            #banUser span.name {
+            #userList span.name {
                 width: 200px;
             }
-            #banUser span.code {
+            #userList span.code {
                 width: 50px;
             }
             #banWord {
                 width: 400px;
             }
-            #banWord span.name {
+            #wordList span.name {
                 width: 180px;
             }
-            #replaceWord input {
+            #replaceWord > input {
                 width: 130px;
                 margin: 1px;
             }
-            #replaceWord input.original, input.replace {
-                font-size: 1.2em;
+            #replaceList li {
+                font-size: 16px;
+                width: 400px;
             }
-            #replaceWord input.original {
+            #replaceList input.original, input.replace {
+                font-size: 15px;
+            }
+            #replaceList input.original {
                 width: 180px;
             }
-            #replaceWord input.replace {
+            #replaceList input.replace {
                 width: 120px;
             }
         </style>
@@ -104,16 +107,13 @@
                 <div id="replaceList">
                     <ul></ul>
                 </div>
-                <p></p>
-                <input type="text" id="addReplaceInput1"><input type="text" id="addReplaceInput2"><button type="button" id="addReplace">add</button>
-                <p></p>
-                <button type="button" id="resetReplace">reset</button>
             </div>
         </div>
         <div id="dogdrip">
             <table id="original">
                 <tr><td rowspan="2"></td><td></td></tr>
                 <tr><td></td></tr>
+                <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
@@ -142,10 +142,12 @@
                 <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
                 <tr><td></td></tr>
             </table>
             <button type="button" id="resetButton">reset</button>
         </div>
+        <textarea id="data" style="clear: both; width: 98vw;"></textarea>
     </body>
     <script src="options.js"></script>
 </html>

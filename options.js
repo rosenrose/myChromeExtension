@@ -1,6 +1,13 @@
-var banList = {};
-var replaceList = [];
-chrome.storage.local.get("cache", data => console.log(data.cache));
+banList = {};
+replaceList = [];
+chrome.storage.local.get(data => {
+    chrome.storage.sync.get(data2 => {
+        console.log(data, data2);
+    })
+    // let textarea = document.querySelector("textarea");
+    // textarea.style.height = "7200vh";
+    // textarea.value = JSON.stringify(data, null, 2);
+});
 chrome.storage.local.get("banList", data => {
     banList = data.banList;
     let userList = document.querySelector("#userList ol");
@@ -12,12 +19,19 @@ chrome.storage.local.get("banList", data => {
         appendWord(wordList, word);
     }
 });
-chrome.storage.sync.get("replaceList", data => {
-    replaceList = data.replaceList;
-    let replaceLi = document.querySelector("#replaceList ul");
-    for (let replace of replaceList) {
-        appendReplace(replaceLi, replace[0], replace[1]);
-    }
+fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
+.then(response => response.text())
+.then(content => {
+    let doc = new DOMParser().parseFromString(content, "text/html");
+    let list = JSON.parse([...doc.querySelectorAll("tr > td:nth-child(2)")].map(i=>i.textContent).join("\n"));
+    chrome.storage.local.set({"replace": list}, () => {
+        chrome.storage.local.get("replace", data => {
+            let replaceLi = document.querySelector("#replaceList ul");
+            for (let replace of data.replace["replaceList"]) {
+                appendReplace(replaceLi, replace[0], replace[1]);
+            }
+        })
+    })
 });
 
 function appendUser(userList, user) {
@@ -39,7 +53,7 @@ function appendUser(userList, user) {
         let code = event.target.previousElementSibling.textContent;
         let idx = banList.user.findIndex(user => user.code == code);
         if (idx > -1) banList.user.splice(idx, 1);
-        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
+        event.target.parentNode.remove();
         save();
     });
     li.appendChild(nick);
@@ -61,7 +75,7 @@ function appendWord(wordList, word) {
         let word = event.target.previousElementSibling.textContent;
         let idx = banList.word.indexOf(word);
         if (idx > -1) banList.word.splice(idx, 1);
-        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
+        event.target.parentNode.remove();
         save();
     });
     li.appendChild(name);
@@ -71,72 +85,79 @@ function appendWord(wordList, word) {
 
 function appendReplace(replaceLi, original, replace) {
     let li = document.createElement("li");
+    li.draggable = true;
+    li.setAttribute("data-index",replaceLi.querySelectorAll("li").length);
+    li.addEventListener("dragstart", event => {
+        dragged = event.target;
+        event.target.style.opacity = 0.5;
+        event.target.style.backgroundColor = "rgb(56,138,255)";
+    });
+    li.addEventListener("dragend", event => {
+        event.target.removeAttribute("style");
+        dragged = null;
+        replaces = document.querySelectorAll("#replaceList li");
+        for (let i=0; i<replaces.length; i++) {
+            replaces[i].setAttribute("data-index",i);
+            replaceList[i] = [replaces[i].querySelector(".original").value, replaces[i].querySelector(".replace").value];
+        }
+        // save();
+    });
+    li.addEventListener("dragover", event => {
+        event.preventDefault();
+    });
+    li.addEventListener("dragenter", event => {
+        if (dragged && (dragged != event.target)) {
+            if (next = event.target.nextElementSibling) {
+                if (next == dragged) {  //상승
+                    event.target.parentNode.insertBefore(dragged, event.target)
+                }
+                else {  //하강
+                    event.target.parentNode.insertBefore(dragged, next)
+                }
+            }
+            else {  //맨 아랫줄
+                event.target.parentNode.appendChild(dragged)
+            }
+        }
+    });
+    li.addEventListener("drop", event => {
+        event.preventDefault();
+    });
+
     let orig = document.createElement("input");
     orig.type = "text";
     orig.className = "original";
     orig.value = original;
+    orig.addEventListener("focus", event => {
+        event.target.setAttribute("oldValue", event.target.value);
+    });
     orig.addEventListener("change", event => {
-        current = replaceList.find(replace => replace[1] == event.target.nextElementSibling.value);
-        current[0] = event.target.value;
-        save();
+        replaceList[event.target.parentNode.getAttribute("data-index")][0] = event.target.value;
+        //save();
     });
     let rep = document.createElement("input");
     rep.type = "text";
     rep.className = "replace";
     rep.value = replace;
     rep.addEventListener("change", event => {
-        current = replaceList.find(replace => replace[0] == event.target.previousElementSibling.value);
-        current[1] = event.target.value;
-        save();
+        replaceList[event.target.parentNode.getAttribute("data-index")][1] = event.target.value;
+        //save();
     });
 
-    let up = document.createElement("button");
-    up.type = "button";
-    up.className = "upReplace";
-    up.textContent = "↑";
-    up.addEventListener("click", event => {
-        let currentNode = event.target.parentNode.parentNode;
-        if (upperNode = currentNode.previousElementSibling) {
-            currentIdx = replaceList.findIndex(replace => replace[1] == event.target.parentNode.previousElementSibling.value);
-            upperIdx = replaceList.findIndex(replace => replace[1] == upperNode.querySelector(".replace").value);
-            [replaceList[currentIdx], replaceList[upperIdx]] = [replaceList[upperIdx], replaceList[currentIdx]];
-            save();
-            currentNode.parentNode.insertBefore(currentNode, upperNode);
-        }
-    });
-    let down = document.createElement("button");
-    down.type = "button";
-    down.className = "downReplace";
-    down.textContent = "↓";
-    down.addEventListener("click", event => {
-        let currentNode = event.target.parentNode.parentNode;
-        if (downerNode = currentNode.nextElementSibling) {
-            currentIdx = replaceList.findIndex(replace => replace[1] == event.target.parentNode.previousElementSibling.value);
-            downerIdx = replaceList.findIndex(replace => replace[1] == downerNode.querySelector(".replace").value);
-            [replaceList[currentIdx], replaceList[downerIdx]] = [replaceList[downerIdx], replaceList[currentIdx]];
-            save();
-            currentNode.parentNode.insertBefore(downerNode, currentNode);
-        }
-    });
     let del = document.createElement("button");
     del.type = "button";
     del.className = "delReplace";
     del.textContent = "del";
     del.addEventListener("click", event => {
-        let rep = event.target.previousElementSibling.previousElementSibling.value;
-        let idx = replaceList.findIndex(replace => replace[1] == rep)
-        if (idx > -1) replaceList.splice(idx, 1);
-        event.target.parentNode.parentNode.removeChild(event.target.parentNode);
-        save();
+        replaceList.splice(event.target.parentNode.getAttribute("data-index"), 1);
+        event.target.parentNode.remove();
+        //save();
     });
-    let updown = document.createElement("span");
-    updown.className = "updown";
-    updown.appendChild(up);
-    updown.appendChild(down);
+    
     li.appendChild(orig);
     li.appendChild(rep);
-    li.appendChild(updown);
     li.appendChild(del);
+    li.appendChild(document.createTextNode("　↕"))
     replaceLi.appendChild(li);
 }
 
@@ -214,18 +235,6 @@ document.querySelector("#resetWord").addEventListener("click", () => {
     window.location.reload();
 });
 
-document.querySelector("#addReplace").addEventListener("click", () => {
-    let original = document.querySelector("#addReplaceInput1").value.trim();
-    let replace = document.querySelector("#addReplaceInput2").value.trim();
-    replaceList.push([original, replace]);
-    appendReplace(document.querySelector("#replaceList ul"), original, replace);
-    save();
-});
-document.querySelector("#resetReplace").addEventListener("click", () => {
-    replaceList = [];
-    save();
-    window.location.reload();
-});
 
 let boardList = [];
 let userBoardList = [];
@@ -343,14 +352,57 @@ function updateTable() {
 }
 
 document.querySelector("#resetButton").addEventListener("click", () => {
-    chrome.storage.sync.set({userBoardList: boardList}, ()=>{});
+    chrome.storage.sync.set({"userBoardList": boardList}, ()=>{});
     window.location.reload();
 });
 
 function save() {
     banList.user.sort((a,b) => {if(a.name[0]>b.name[0]) return 1; if(a.name[0]<b.name[0]) return -1; return 0;});
     banList.word.sort();
-    chrome.storage.local.set({banList: banList}, ()=>{});
-    chrome.storage.sync.set({userBoardList: userBoardList}, ()=>{});
-    chrome.storage.sync.set({replaceList: replaceList}, ()=>{});
+    chrome.storage.local.set({"banList": banList}, ()=>{});
+    chrome.storage.sync.set({"userBoardList": userBoardList}, ()=>{});
+}
+
+function backup() {
+    chrome.storage.local.get(data => {
+        chrome.storage.sync.get(data2 => {
+            json = JSON.stringify([data, data2], null, 2);
+            blob = new Blob([json]);
+            saveAs(URL.createObjectURL(blob), "backup.json");
+        })
+    });
+}
+
+function replaceSort() {
+    let regex = /[\d가-힣ㄱ-ㅎ]/;
+    replaceList.sort((a,b) => {
+        if(a[0].match(regex)[0]>b[0].match(regex)[0]) return 1;
+        if(a[0].match(regex)[0]<b[0].match(regex)[0]) return -1;
+        return 0;
+    });
+}
+
+function clearCache() {
+    chrome.storage.local.get("cache", data => {
+        for (let i=0; i<data.cache.main.length; i++) {
+            data.cache.main[i] = {"link":"", "info":[], "title":""};
+        }
+        for (let i=0; i<data.cache.top.length; i++) {
+            data.cache.top[i] = {"link":"", "info":[], "title":""};
+        }
+        chrome.storage.local.set({"cache": data.cache}, ()=>{})
+    });
+}
+
+function saveAs(uri, filename) {
+    let link = document.createElement('a');
+    if (typeof link.download === 'string') {
+        document.body.appendChild(link); // Firefox requires the link to be in the body
+        link.download = filename;
+        link.href = uri;
+        link.click();
+        document.body.removeChild(link); // remove the link when done
+    } else {
+        location.replace(uri);
+    }
 }
