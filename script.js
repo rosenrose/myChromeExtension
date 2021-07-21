@@ -1,8 +1,17 @@
 [domain, url] = [document.domain, document.URL];
 shortcut = {};
 alt = new Set();
-numMapping = {20: "q", 21: "w", 22: "e", 23: "r", 24: "t", 25: "y", 26: "u", 27: "i", 28: "o", 29: "p"};
+numMapping = {
+    20: "q", 21: "w", 22: "e", 23: "r", 24: "t", 25: "y", 26: "u", 27: "i", 28: "o", 29: "p",
+    30: "a", 31: "s", 32: "d", 33: "f", 34: "g", 35: "h", 36: "j", 37: "k", 38: "l", 39: ";",
+    40: "z", 41: "x", 42: "c", 43: "v", 44: "b", 45: "n", 46: "m", 47: ",", 48: ".", 49: "/",
+    50: "-", 51: "=", 52: "[", 53: "]", 54: "\\", 55: "'", 56: "`"
+};
 contextMenuElement = null;
+jamoRegex = /(?<=\{).+?(?=\})/;
+zipRegex = /(?<=\()(?<![?!=<]+)[^?!=<]+?(?=\))/g;
+mutex = false;
+regexMap = {};
 
 document.addEventListener("keydown", event => {
     let tagName = event.target.tagName;
@@ -55,10 +64,26 @@ document.addEventListener("contextmenu", event => {
 
 chrome.storage.local.get("replace", data => {
     replaceJson = data.replace;
-    let ilbe = replaceJson["ilbe"].join("|");
-    for (let i=0; i<2; i++) {
-        replaceJson["ilbeReplace"][i][0] = replaceJson["ilbeReplace"][i][0].replace("${ilbe}",ilbe).replace("${endSuffix}",replaceJson["endSuffix"]);
-    }
+    replaceJson["ilbeReplace"].forEach(ilbe => {
+        if (ilbe[0].includes("${")) {
+            regexMap[ilbe[0]] = new RegExp(ilbe[0].replace("${ilbe}",replaceJson["ilbe"]).replace("${endSuffix}",replaceJson["endSuffix"]), "g");
+        }
+        else {
+            regexMap[ilbe[0]] = new RegExp(ilbe[0], "g");
+        }
+    });
+    replaceJson["replaceList"].forEach(replace => {
+        if (zipRegex.exec(replace[1])) {
+            regexMap[replace[0]] = new RegExp(replace[0], "gd");
+            zipRegex.lastIndex = 0;
+        }
+        else {
+            regexMap[replace[0]] = new RegExp(replace[0], "g");
+        }
+    });
+    replaceJson["ends"].forEach(end => {
+        regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
+    });
     
     observer = new MutationObserver((mutationList, observer) => {
         mutationList.forEach(mutation => {
@@ -68,7 +93,8 @@ chrome.storage.local.get("replace", data => {
                         namu();
                     }
                     else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
-                        replace(mutation.target);
+                        textReplace(mutation.target);
+                        // replaceDeubg(mutation.target);
                         if (domain == "laftel.net") {
                             let inside = document.querySelector(".inside");
                             if (inside) {
@@ -81,7 +107,6 @@ chrome.storage.local.get("replace", data => {
                 case "attributes":
                     // console.log(mutation.target);
                     if (domain == "bbs.ruliweb.com" && mutation.target.id == "push_bar" && mutation.target.hasAttribute("style")) {
-                        // console.log(mutation.target);
                         mutation.target.removeAttribute("style");
                         mutation.target.querySelector("a").target = "_blank";
                     }
@@ -92,11 +117,12 @@ chrome.storage.local.get("replace", data => {
     observer.observe(document.body, {childList: true, subtree: true, attributes: true});
 
     if (!replaceJson["domainExcept"].includes(domain)) {
-        replace(document.head);
-        replace(document.body);
+        textReplace(document.head.querySelector("title"));
+        textReplace(document.body);
+        // textReplace(document.documentElement);
         document.querySelectorAll("iframe").forEach(iframe => {
             try {
-                replace(iframe.contentWindow.document.body);
+                textReplace(iframe.contentWindow.document.body);
             } catch (error) {
                 console.log("iframe: "+error);
             }
@@ -105,58 +131,94 @@ chrome.storage.local.get("replace", data => {
     main();
 });
 
-function replace(root) {
+function textReplace(root) {
     walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    while(node = walk.nextNode()) {
+    while (node = walk.nextNode()) {
+        text = node.textContent;
+        if (!/[가-힣]/.test(text)) continue;
         if (replaceJson["tagExcept"].includes(node.parentNode.tagName)) continue;
-        if (node.textContent.trim()) {
-            text = node.textContent;
-            for (let end of replaceJson["ends"]) {
-                regex = new RegExp(`${end[0]}(${replaceJson["endSuffix"]}*)$`, "g")
-                if (result = regex.exec(text)) {
-                    node.textContent = text.replaceAll(regex, end[1]);
-                    console.log(`${text} (${result[0]})\n-----\n${node.textContent}`);
-                    text = node.textContent;
-                }
+        
+        for (let end of replaceJson["ends"]) {
+            regex = regexMap[end[0]];
+            if (result = regex.exec(text)) {
+                node.textContent = text.replace(regex, end[1]);
+                console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
+                text = node.textContent;
+                regex.lastIndex = 0;
             }
-            for (let replace of replaceJson["replaceList"]) {
-                regex = new RegExp(replace[0], "g");
-                if (result = regex.exec(text)) {
-                    node.textContent = text.replaceAll(regex, replace[1]);
-                    console.log(`${text} (${result[0]})\n-----\n${node.textContent}`);
-                    text = node.textContent;
-                }
-            }
-            if (replaceJson["repDomain"].includes(domain)) {
-                for (let replace of replaceJson["ilbeReplace"]) {
-                    regex = new RegExp(replace[0], "g");
-                    if (result = regex.exec(text)) {
-                        if (result[1] && result[2] && replaceJson["replaceExcept"].some(rep => (result[1]+result[2]).endsWith(rep))) continue;
-                        node.textContent = text.replaceAll(regex, replace[1]);
-                        console.log(`${text} (${result[0]})\n-----\n${node.textContent}`);
-                        text = node.textContent;
+        }
+        for (let replace of replaceJson["replaceList"]) {
+            regex = regexMap[replace[0]];
+            if (result = regex.exec(text)) {
+                if (jamo = jamoRegex.exec(replace[1])) {
+                    let [rep,start,end,repStart,repEnd] = jamo[0].split(",");
+                    let nfd = result[0].normalize("NFD");
+                    let newNFD;
+                    if (repStart) {
+                        newNFD = nfd.slice(0,start) + rep.normalize("NFD").slice(repStart,repEnd) + nfd.slice(end);
                     }
+                    else {
+                        newNFD = nfd.slice(0,start) + rep.normalize("NFD") + nfd.slice(end);
+                    }
+                    node.textContent = text.replace(regex, newNFD.normalize());
+                }
+                else if (repZips = replace[1].match(zipRegex)) {
+                    let orgZips = replace[0].match(zipRegex);
+                    let indices = [];
+                    for (let i=1; i<result.length; i++) {
+                        let orgZip = orgZips[i-1].split("|");
+                        let repZip = repZips[i-1].split("|");
+                        let index = orgZip.indexOf(result[i]);
+                        indices.push([repZip[index], result.indices[i]]);
+                    }
+                    node.textContent = replaceAt(text, ...indices);
+                }
+                else {
+                    node.textContent = text.replace(regex, replace[1]);
+                }
+                console.log(`${text.trim()} (${replace[0]} -> ${result[0]})\n-----\n${node.textContent.trim()}`);
+                text = node.textContent;
+                regex.lastIndex = 0;
+            }
+        }
+        if (replaceJson["repDomain"].includes(domain)) {
+            for (let replace of replaceJson["ilbeReplace"]) {
+                regex = regexMap[replace[0]];
+                if (result = regex.exec(text)) {
+                    if (result[1] && replaceJson["replaceExcept"].some(rep => result[1].endsWith(rep))) continue;
+                    node.textContent = text.replace(regex, replace[1]);
+                    console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
+                    text = node.textContent;
+                    regex.lastIndex = 0;
                 }
             }
         }
     }
     if (domain == "dcinside.com") {
         document.querySelectorAll(".written_dccon").forEach(con => {
-            let includeCheck = [con.getAttribute("data-original"), con.src, con.getAttribute("data-src"), con.getAttribute("ori-data")].filter(a => a != null);
-            if (includeCheck.some(check => replaceJson["ilbeCon"].includes(check))) {
-                con.setAttribute("data-original", "");
-                con.src = "";
-                con.setAttribute("data-src", "");
-                con.setAttribute("ori-data", "");
-                if (source = con.querySelector("source")) {
-                    source.remove();
-                }
+            let check = con.getAttributeNames().map(attr => con.getAttribute(attr)).filter(a => a != "");
+            if (check.some(c => replaceJson["ilbeCon"].includes(c))) {
+                con.remove();
+                // console.log(con.getAttributeNames());
             }
         });
     }
 }
 
-hideMode = true;
+function replaceAt(str, ...indices) {
+    indices = indices.sort((a,b) => (a[1][0]>b[1][0])? 1:-1);
+    let result = [];
+    result.push(str.slice(0, indices[0][1][0]));
+    for (let i=0; i<indices.length; i++) {
+        result.push(indices[i][0]);
+        if (i<indices.length-1) {
+            result.push(str.slice(indices[i][1][1], indices[i+1][1][0]));
+        }
+    }
+    result.push(str.slice(indices[indices.length-1][1][1], str.length));
+    return result.join("");
+}
+
 function main() {
     switch(domain) {
         case "bbs.ruliweb.com":
@@ -170,137 +232,135 @@ function main() {
                     imgBtn.click();
                 }
             }
-            else if (hideMode) {
-                let trs = document.querySelectorAll("tr.table_body");
-                chrome.storage.local.get(["banList", "cache"], data => {
-                    banList = data.banList;
-                    cache = data.cache;
-                    let banCodes = banList.user.map(user => user.code);
-                    let banWords = banList.word;
-                    promises = [];
-            
-                    let writer, title, board;
-                    for (let tr of trs) {
-                        if (url.includes("view=list")) {
-                            writer = tr.querySelector("td.writer.text_over").textContent.trim();
-                            title = tr.querySelector("td.subject > a");
-                            board = tr.querySelector("td.board_name").textContent.trim();
+            let trs = document.querySelectorAll("tr.table_body");
+            chrome.storage.local.get(["banList", "cache"], data => {
+                banList = data.banList;
+                cache = data.cache;
+                let banCodes = banList.user.map(user => user.code);
+                let banWords = banList.word;
+                promises = [];
+        
+                let writer, title, board;
+                for (let tr of trs) {
+                    if (url.includes("view=list")) {
+                        writer = tr.querySelector("td.writer.text_over").textContent.trim();
+                        title = tr.querySelector("td.subject > a");
+                        board = tr.querySelector("td.board_name").textContent.trim();
+                    }
+                    else {
+                        writer = tr.querySelector("a.nick").textContent.trim();
+                        title = tr.querySelector("a.title_wrapper");
+                        board = tr.querySelector("div.article_info > a").textContent.trim();
+                        tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
+                    }
+                    title.target = "_blank";
+                    if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
+                        tr.style.display = "none";
+                        console.log(title, title.childNodes[0].textContent.trim()+"\n"+writer.slice(0,2));
+                        // title.innerHTML+=`${head}←(병신)${tail}`;
+                    }
+                    
+                    if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
+                        let [writer, code] = result.info;
+                        if (banCodes.includes(code)) {
+                            hide(tr, writer, code, "main");
                         }
-                        else {
-                            writer = tr.querySelector("a.nick").textContent.trim();
-                            title = tr.querySelector("a.title_wrapper");
-                            board = tr.querySelector("div.article_info > a").textContent.trim();
-                            tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
-                        }
-                        title.target = "_blank";
-                        if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
-                            tr.style.display = "none";
-                            console.log(title, title.childNodes[0].textContent.trim()+"\n"+writer.slice(0,2));
-                            // title.innerHTML+=`${head}←(병신)${tail}`;
-                        }
-                        
-                        if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
+                    }
+                    else {
+                        promises.push(new Promise(resolve => {
+                            getNameCode(title.href, title)
+                            .then(([writer, code, title]) => {
+                                resolve();
+                                if (banCodes.includes(code)) {
+                                    hide(tr, writer, code, "main");
+                                }
+                                cache.main.pop();
+                                cache.main.unshift({
+                                    "link": title.href.split("?")[0],
+                                    "info": [writer, code],
+                                    "title": title.textContent.trim()
+                                });
+                            });
+                        }));
+                    }
+                }
+                let best = document.querySelector("div.list.best_date.active");
+                if (best) {
+                    let items = best.querySelectorAll("a.deco");
+                    for (let item of items) {
+                        item.target = "_blank";
+                        if (result = cache.top.find(top => top.link == item.href)) {
                             let [writer, code] = result.info;
                             if (banCodes.includes(code)) {
-                                hide(tr, writer, code, "main");
+                                hide(item, writer, code, "top");
                             }
                         }
                         else {
                             promises.push(new Promise(resolve => {
-                                getNameCode(title.href, title)
-                                .then(([writer, code, title]) => {
+                                getNameCode(item.href, item)
+                                .then(([writer, code, item]) => {
                                     resolve();
                                     if (banCodes.includes(code)) {
-                                        hide(tr, writer, code, "main");
+                                        hide(item, writer, code, "top");
                                     }
-                                    cache.main.pop();
-                                    cache.main.unshift({
-                                        "link": title.href.split("?")[0],
+                                    cache.top.pop();
+                                    cache.top.unshift({
+                                        "link": item.href,
                                         "info": [writer, code],
-                                        "title": title.textContent.trim()
+                                        "title": item.textContent.trim()
                                     });
                                 });
                             }));
                         }
                     }
-                    let best = document.querySelector("div.list.best_date.active");
-                    if (best) {
-                        let items = best.querySelectorAll("a.deco");
-                        for (let item of items) {
-                            item.target = "_blank";
-                            if (result = cache.top.find(top => top.link == item.href)) {
-                                let [writer, code] = result.info;
-                                if (banCodes.includes(code)) {
-                                    hide(item, writer, code, "top");
-                                }
-                            }
-                            else {
-                                promises.push(new Promise(resolve => {
-                                    getNameCode(item.href, item)
-                                    .then(([writer, code, item]) => {
-                                        resolve();
-                                        if (banCodes.includes(code)) {
-                                            hide(item, writer, code, "top");
-                                        }
-                                        cache.top.pop();
-                                        cache.top.unshift({
-                                            "link": item.href,
-                                            "info": [writer, code],
-                                            "title": item.textContent.trim()
-                                        });
-                                    });
-                                }));
-                            }
+                }
+        
+                Promise.all(promises).then(() => {
+                    visible = [...trs].filter(tr => !tr.hasAttribute("style"));
+                    for (let i=0; i<Math.min(30,visible.length); i++) {
+                        let td;
+                        if (url.includes("view=list")) {
+                            td = visible[i].querySelector("td.subject");
+                        }
+                        else {
+                            td = visible[i].querySelector("div.text_wrapper");
+                        }
+                        let a = td.querySelector("a");
+                        let small = document.createElement("span");
+                        if (i<20) {
+                            small.textContent = `[${i+1}] `;
+                            shortcut[i] = a.href;
+                        }
+                        else {
+                            small.textContent = `[${numMapping[i].toUpperCase()}] `;
+                            shortcut[numMapping[i]] = a.href;
+                        }
+                        small.style.fontSize = "small";
+                        if (url.includes("view=list")) {
+                            td.insertBefore(small, a);
+                        }
+                        else {
+                            a.insertBefore(small, a.childNodes[0]);
                         }
                     }
-            
-                    Promise.all(promises).then(() => {
-                        visible = [...trs].filter(tr => !tr.hasAttribute("style"));
-                        for (let i=0; i<Math.min(30,visible.length); i++) {
-                            let td;
-                            if (url.includes("view=list")) {
-                                td = visible[i].querySelector("td.subject");
-                            }
-                            else {
-                                td = visible[i].querySelector("div.text_wrapper");
-                            }
-                            let a = td.querySelector("a");
-                            let small = document.createElement("span");
-                            if (i<20) {
-                                small.textContent = `[${i+1}] `;
-                                shortcut[i] = a.href;
-                            }
-                            else {
-                                small.textContent = `[${numMapping[i].toUpperCase()}] `;
-                                shortcut[numMapping[i]] = a.href;
-                            }
-                            small.style.fontSize = "small";
-                            if (url.includes("view=list")) {
-                                td.insertBefore(small, a);
-                            }
-                            else {
-                                a.insertBefore(small, a.childNodes[0]);
-                            }
-                        }
-                        promises = [];
-                        chrome.storage.local.set({"cache": cache}, ()=>{});
-                    });
+                    promises = [];
+                    chrome.storage.local.set({"cache": cache}, ()=>{});
                 });
-            
-                page = (new URL(url)).searchParams.get("page");
-                if (page) {
-                    page = parseInt(page);
-                    shortcut["a"] = url.replace(`page=${page}`, `page=${(page>1)? page-1 : 1}`);
-                    shortcut["s"] = url.replace(`page=${page}`, `page=${page+1}`);
+            });
+        
+            page = (new URL(url)).searchParams.get("page");
+            if (page) {
+                page = parseInt(page);
+                shortcut["a"] = url.replace(`page=${page}`, `page=${(page>1)? page-1 : 1}`);
+                shortcut["s"] = url.replace(`page=${page}`, `page=${page+1}`);
+            }
+            else {
+                page = 1;
+                if (location.search.includes("?")) {
+                    shortcut["s"] = `${url}&page=${page+1}`;
                 }
                 else {
-                    page = 1;
-                    if (location.search.includes("?")) {
-                        shortcut["s"] = `${url}&page=${page+1}`;
-                    }
-                    else {
-                        shortcut["s"] = `${url}?page=${page+1}`;
-                    }
+                    shortcut["s"] = `${url}?page=${page+1}`;
                 }
             }
             // for (let i=0; i<trs.length; i++) {
@@ -402,43 +462,48 @@ function main() {
             for (let script of document.querySelectorAll("script")) {
                 script.remove();
             }
-            // saveAs(URL.createObjectURL(new Blob([document.children[0].outerHTML], {type: "text/html"})),"save.html");
+            // saveAs(URL.createObjectURL(new Blob([document.documentElement.outerHTML], {type: "text/html"})),"save.html");
             break;
     }
 }
 
 function namu() {
     url = document.URL;
+    [...document.querySelector("aside").querySelectorAll(".c")].slice(2).forEach(div => {div.style.display = "none";});
     if (url.includes("namu.wiki/history/")) {
         let xpath = "//a[text() = '비교']/../../..";
-        let lists = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-        lists = lists.querySelectorAll("li");
-        lists.forEach(list => {
-            let id = list.querySelector("div");
-            let a = id.querySelector("a");
-            a.target = "_blank";
-            if (["180.224.237.249","49.171.158.105"].includes(id.textContent.trim())) {
-                a.style["text-decoration"] = "line-through";
-                list.querySelectorAll(":scope > span")[2].textContent = "";
-            }
-        });
+        let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        if (ul) {
+            ul.querySelectorAll("li").forEach(li => {
+                let id = li.querySelector("div");
+                let a = id.querySelector("a");
+                a.target = "_blank";
+                if (["180.224.237.249","49.171.158.105"].includes(id.textContent.trim())) {
+                    a.style["text-decoration"] = "line-through";
+                    li.querySelectorAll(":scope > span")[2].textContent = "";
+                }
+            });
+        }
     }
     else if (url.includes("starred_documents")) {
         let xpath = "//li[contains(text(), '수정시각')]/..";
-        let lists = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-        lists = lists.querySelectorAll("li > a");
-        lists.forEach(link => {
-            link.href = link.href.replace("/w","/history");
-            link.target = "_blank";
-        });
+        let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        if (ul) {
+            ul.querySelectorAll("li > a").forEach(a => {
+                a.href = a.href.replace("/w","/history");
+                a.target = "_blank";
+            });
+        }
     }
     else if (url.includes("namu.wiki/edit/")) {
         let check = document.querySelector("input[type='checkbox']");
-        check.parentNode.nextElementSibling.addEventListener("click", () => {
-            if (!check.checked) {
-                check.click();
-            }
-        });
+        if (check) {
+            check.parentNode.nextElementSibling.addEventListener("click", () => {
+                if (!check.checked) {
+                    check.click();
+                }
+            });
+        }
     }
     else {
         // let xpath = "//a[text() = '편집']/..";
@@ -509,6 +574,16 @@ function getMain(link) {
         }
         return [article, comment];
     })
+}
+
+function replaceDeubg(root) {
+    walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (node = walk.nextNode()) {
+        if (node.textContent.trim()) {
+            console.log(text);
+            node.textContent = text.replace(/노/g, "냐");
+        }
+    }
 }
 
 function select(...elems) {

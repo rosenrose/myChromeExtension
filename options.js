@@ -184,43 +184,58 @@ document.querySelector("#resetUser").addEventListener("click", () => {
 });
 
 document.querySelector("#updateUser").addEventListener("click", () => {
-    banList.user.forEach(user => {
-        fetch(`https://mypi.ruliweb.com/mypi.htm?nid=${user.code}`)
+    index = 0
+    updateUser();
+});
+
+function updateUser() {
+    console.log(index);
+    setTimeout(() => {
+        fetch(`https://mypi.ruliweb.com/mypi.htm?nid=${banList.user[index].code}`)
         .then(response => response.text())
         .then(content => {
             let doc = new DOMParser().parseFromString(content, "text/html");
             let nick = doc.querySelector("h2.txt");
             if (nick) {
                 nick = nick.textContent.split(" MYPI")[0].trim();
-                if (!user.name.includes(nick)) {
-                    console.log(user, nick);
-                    user.name.unshift(nick);
+                if (!banList.user[index].name.includes(nick)) {
+                    console.log(banList.user[index], nick);
+                    banList.user[index].name.unshift(nick);
                     save();
+                }
+                if (index < banList.user.length-1) {
+                    index += 1;
+                    updateUser();
                 }
             }
             else {
-                fetch(`https://bbs.ruliweb.com/best/board/300143?search_type=member_srl&search_key=${user.code}`)
+                fetch(`https://bbs.ruliweb.com/best/board/300143?search_type=member_srl&search_key=${banList.user[index].code}`)
                 .then(response => response.text())
                 .then(content => {
                     let doc = new DOMParser().parseFromString(content, "text/html");
                     let tr = doc.querySelector(".table_body:not(.notice):not(.best):not(.list_inner)");
-                    let writer = tr.querySelector("td.writer")
+                    // let writer = tr.querySelector("td.writer");
+                    let writer = tr.querySelector("a.nick");
                     if (writer) {
                         writer = writer.textContent.trim();
-                        if (!user.name.includes(writer)) {
-                            console.log(user, writer);
-                            user.name.unshift(writer);
+                        if (!banList.user[index].name.includes(writer)) {
+                            console.log(banList.user[index], writer);
+                            banList.user[index].name.unshift(writer);
                             save();
                         }
                     }
                     else {
-                        console.log(user, "del")
+                        console.log(banList.user[index], "del")
+                    }
+                    if (index < banList.user.length-1) {
+                        index += 1;
+                        updateUser();
                     }
                 })
             }
         });
-    })
-});
+    }, 1000);
+}
 
 document.querySelector("#addWord").addEventListener("click", () => {
     let word = document.querySelector("#addWordInput").value.trim();
