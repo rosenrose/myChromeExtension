@@ -1,7 +1,7 @@
 [domain, url] = [document.domain, document.URL];
 shortcut = {};
 alt = new Set();
-numMapping = {
+numMap = {
     20: "q", 21: "w", 22: "e", 23: "r", 24: "t", 25: "y", 26: "u", 27: "i", 28: "o", 29: "p",
     30: "a", 31: "s", 32: "d", 33: "f", 34: "g", 35: "h", 36: "j", 37: "k", 38: "l", 39: ";",
     40: "z", 41: "x", 42: "c", 43: "v", 44: "b", 45: "n", 46: "m", 47: ",", 48: ".", 49: "/",
@@ -117,8 +117,8 @@ chrome.storage.local.get("replace", data => {
     observer.observe(document.body, {childList: true, subtree: true, attributes: true});
 
     if (!replaceJson["domainExcept"].includes(domain)) {
-        textReplace(document.head.querySelector("title"));
         textReplace(document.body);
+        textReplace(document.head.querySelector("title"));
         // textReplace(document.documentElement);
         document.querySelectorAll("iframe").forEach(iframe => {
             try {
@@ -198,7 +198,7 @@ function textReplace(root) {
         document.querySelectorAll(".written_dccon").forEach(con => {
             let check = con.getAttributeNames().map(attr => con.getAttribute(attr)).filter(a => a != "");
             if (check.some(c => replaceJson["ilbeCon"].includes(c))) {
-                con.remove();
+                con.parentNode.remove();
                 // console.log(con.getAttributeNames());
             }
         });
@@ -332,8 +332,8 @@ function main() {
                             shortcut[i] = a.href;
                         }
                         else {
-                            small.textContent = `[${numMapping[i].toUpperCase()}] `;
-                            shortcut[numMapping[i]] = a.href;
+                            small.textContent = `[${numMap[i].toUpperCase()}] `;
+                            shortcut[numMap[i]] = a.href;
                         }
                         small.style.fontSize = "small";
                         if (url.includes("view=list")) {
