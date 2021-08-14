@@ -46,14 +46,14 @@ document.addEventListener("keydown", event => {
         else if (key.toLowerCase() == "q" && event.ctrlKey) {
             window.open(document.URL);
         }
-        else if (key == "Backspace" && tagName == "BODY") {
+        else if (key == "Backspace" && tagName == "BODY" && document.designMode == "off") {
             window.history.back();
         }
     }
 });
 document.addEventListener("keyup", event => {
     if (event.key == "Alt" && alt.size) {
-        for (let a of alt) window.open(a, "_blank");
+        alt.forEach(a => {window.open(a, "_blank");});
         alt = new Set();
     }
 })
@@ -415,9 +415,9 @@ function main() {
         
                 let boardList = [...document.querySelectorAll("div.eq.overflow-hidden")].slice(2);
                 let boardMap = {};
-                for (let board of boardList) {
+                boardList.forEach(board => {
                     boardMap[board.querySelector("a").textContent.trim()] = board.cloneNode(true);
-                }
+                });
         
                 chrome.storage.sync.get("userBoardList", data => {
                     for (let i=0; i<boardList.length; i++) {
@@ -459,9 +459,7 @@ function main() {
             namu();
             break;
         case "novelpia.com":
-            for (let script of document.querySelectorAll("script")) {
-                script.remove();
-            }
+            document.querySelectorAll("script").forEach(script => {script.remove();});
             // saveAs(URL.createObjectURL(new Blob([document.documentElement.outerHTML], {type: "text/html"})),"save.html");
             break;
     }
@@ -602,11 +600,10 @@ function appendTooltip(item, count) {
     }
     let tooltip = document.createElement("div");
     tooltip.style.marginTop = `${-400 + -20*count}px`;
-    item.appendChild(tooltip);
+    item.append(tooltip);
     getMain(item.href)
     .then(([article, comment]) => {
-        tooltip.appendChild(article);
-        tooltip.appendChild(comment);
+        tooltip.append(article, comment);
     });
 }
 
@@ -633,17 +630,10 @@ function listAllEventListeners() {
     return elements.sort((a,b) => {return a.type.localeCompare(b.type);});
 }
 
-function urlParse(url) {
-    return Object.fromEntries(url.split("&").map(keyVal => keyVal.split("=")).map(([k,v]) => [k,decodeURIComponent(v)]));
-}
-function urlEncode(obj) {
-    return Object.entries(obj).map(([key,val]) => `${key}=${encodeURIComponent(val)}`).join("&");
-}
-
 function saveAs(uri, filename) {
     let link = document.createElement('a');
     if (typeof link.download === 'string') {
-        document.body.appendChild(link); // Firefox requires the link to be in the body
+        document.body.append(link); // Firefox requires the link to be in the body
         link.download = filename;
         link.href = uri;
         link.click();

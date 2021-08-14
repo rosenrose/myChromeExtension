@@ -56,10 +56,8 @@ function appendUser(userList, user) {
         event.target.parentNode.remove();
         save();
     });
-    li.appendChild(nick);
-    li.appendChild(code);
-    li.appendChild(btn);
-    userList.appendChild(li);
+    li.append(nick, code, btn);
+    userList.append(li);
 }
 
 function appendWord(wordList, word) {
@@ -78,9 +76,8 @@ function appendWord(wordList, word) {
         event.target.parentNode.remove();
         save();
     });
-    li.appendChild(name);
-    li.appendChild(btn);
-    wordList.appendChild(li);
+    li.append(name, btn);
+    wordList.append(li);
 }
 
 function appendReplace(replaceLi, original, replace) {
@@ -116,7 +113,7 @@ function appendReplace(replaceLi, original, replace) {
                 }
             }
             else {  //맨 아랫줄
-                event.target.parentNode.appendChild(dragged)
+                event.target.parentNode.append(dragged)
             }
         }
     });
@@ -154,11 +151,8 @@ function appendReplace(replaceLi, original, replace) {
         //save();
     });
     
-    li.appendChild(orig);
-    li.appendChild(rep);
-    li.appendChild(del);
-    li.appendChild(document.createTextNode("　↕"))
-    replaceLi.appendChild(li);
+    li.append(orig, rep, del, "　↕");
+    replaceLi.append(li);
 }
 
 document.querySelector("#addUser").addEventListener("click", () => {
@@ -284,9 +278,8 @@ fetch("https://www.dogdrip.net/")
                 save();
                 updateTable();
             });
-            label.appendChild(input);
-            label.appendChild(document.createTextNode(boardList[i]));
-            td[i].appendChild(label);
+            label.append(input, boardList[i]);
+            td[i].append(label);
         }
         else {
             td[i].textContent = "\u00A0";
@@ -412,7 +405,7 @@ function clearCache() {
 function saveAs(uri, filename) {
     let link = document.createElement('a');
     if (typeof link.download === 'string') {
-        document.body.appendChild(link); // Firefox requires the link to be in the body
+        document.body.append(link); // Firefox requires the link to be in the body
         link.download = filename;
         link.href = uri;
         link.click();

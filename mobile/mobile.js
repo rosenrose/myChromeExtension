@@ -8,7 +8,7 @@ if (debug) {
     console = document.createElement("textarea");
     console.style.width = "100%";
     console.style.height = "20vh";
-    document.body.appendChild(console);
+    document.body.append(console);
 }
 function writeLog(msg) {
     console.value += `${msg}\n`;
