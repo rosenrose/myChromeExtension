@@ -1,14 +1,10 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "My Extensions",
     "version": "1.0",
     "description" : "Base Level Extension",
-    "browser_action": {
+    "action": {
         "default_popup": "options.html"
-    },
-    "background": {
-        "persistent": false,
-        "scripts": ["background.js"]        
     },
     "permissions": [
         "storage",

@@ -111,24 +111,6 @@
         </div>
         <div id="dogdrip">
             <table id="original">
-                <tr><td rowspan="2"></td><td></td></tr>
-                <tr><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td><td></td></tr>
-                <tr><td></td></tr>
-            </table>
-            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-            <table id="user">
                 <tr><td rowspan="2">&nbsp;</td><td>&nbsp;</td></tr>
                 <tr><td></td></tr>
                 <tr><td></td><td></td></tr>
@@ -143,11 +125,41 @@
                 <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
                 <tr><td></td><td></td></tr>
-                <tr><td></td></tr>
+                <tr><td></td><td></td></tr>
+                <tr><td></td><td></td></tr>
             </table>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            <table id="user"></table>
             <button type="button" id="resetButton">reset</button>
         </div>
         <textarea id="data" style="clear: both; width: 98vw;"></textarea>
+        <pre></pre>
     </body>
+    <template id="userTemplate">
+        <li id="">
+            <span class="name"></span>
+            <span class="code"></span>
+            <button type="button" class="delUser">del</button>
+        </li>
+    </template>
+    <template id="wordTemplate">
+        <li>
+            <span class="name"></span>
+            <button type="button" class="delWord">del</button>
+        </li>
+    </template>
+    <template id="replaceTemplate">
+        <li draggable="true" data-index="">
+            <input type="text" class="original">
+            <input type="text" class="replace">
+            <button type="button" class="delReplace">del</button>　↕
+        </li>
+    </template>
+    <template id="checkboxTemplate">
+        <label>
+            <input type="checkbox" value="">
+            board title
+        </label>
+    </template>
     <script src="options.js"></script>
 </html>

@@ -12,10 +12,11 @@ jamoRegex = /(?<=\{).+?(?=\})/;
 zipRegex = /(?<=\()(?<![?!=<]+)[^?!=<]+?(?=\))/g;
 mutex = false;
 regexMap = {};
+sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 document.addEventListener("keydown", event => {
     let tagName = event.target.tagName;
-    if ((tagName != 'INPUT') && (tagName != 'TEXTAREA')){
+    if ((tagName != 'INPUT') && (tagName != 'TEXTAREA')) {
         let [key, code] = [event.key, event.code];
         // console.log(key, code, "shift", event.shiftKey, "alt", event.altKey, "ctrl", event.ctrlKey);
         if (code.startsWith("Digit") || code.startsWith("Numpad")) {
@@ -84,52 +85,67 @@ chrome.storage.local.get("replace", data => {
     replaceJson["ends"].forEach(end => {
         regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
     });
-    
-    observer = new MutationObserver((mutationList, observer) => {
-        mutationList.forEach(mutation => {
-            switch (mutation.type) {
-                case "childList":
-                    if (domain == "namu.wiki") {
-                        namu();
-                    }
-                    else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
-                        textReplace(mutation.target);
-                        // replaceDeubg(mutation.target);
-                        if (domain == "laftel.net") {
-                            let inside = document.querySelector(".inside");
-                            if (inside) {
-                                inside.style.display = "none";
-                            }
-                        }
-                    }
-                    // console.log(`The ${mutation.attributeName} attribute was modified.`);
-                    break;
-                case "attributes":
-                    // console.log(mutation.target);
-                    if (domain == "bbs.ruliweb.com" && mutation.target.id == "push_bar" && mutation.target.hasAttribute("style")) {
-                        mutation.target.removeAttribute("style");
-                        mutation.target.querySelector("a").target = "_blank";
-                    }
-                    break;
-            }
+
+    observer = new MutationObserver(observeCallback);
+    observer.observe(document.body, {childList: true, subtree: true, attributes: true, attributeOldValue: true});
+    try {
+        document.querySelectorAll("iframe").forEach(iframe => {
+            let observer = new MutationObserver(observeCallback);
+            observer.observe(iframe.contentDocument.body, {childList: true, subtree: true, attributes: true});
         });
-    });
-    observer.observe(document.body, {childList: true, subtree: true, attributes: true});
+    } catch (error) {
+        // console.log("iframe: "+error);
+    }
 
     if (!replaceJson["domainExcept"].includes(domain)) {
         textReplace(document.body);
         textReplace(document.head.querySelector("title"));
-        // textReplace(document.documentElement);
-        document.querySelectorAll("iframe").forEach(iframe => {
-            try {
-                textReplace(iframe.contentWindow.document.body);
-            } catch (error) {
-                console.log("iframe: "+error);
-            }
-        });
+        try {
+            document.querySelectorAll("iframe").forEach(iframe => {
+                textReplace(iframe.contentDocument.body);
+            });
+        } catch (error) {
+            // console.log("iframe: "+error);
+        }
     }
     main();
 });
+
+function observeCallback(mutationList) {
+    mutationList.forEach(mutation => {
+        // console.log(mutation.type, mutation.target);
+        switch (mutation.type) {
+            case "childList":
+                if (domain == "namu.wiki") {
+                    namu();
+                }
+                else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
+                    textReplace(mutation.target);
+                    // replaceDeubg(mutation.target);
+                    if (domain == "laftel.net") {
+                        let inside = document.querySelector(".inside");
+                        if (inside) {
+                            inside.hidden = true;
+                        }
+                    }
+                }
+                if (domain.includes("dood")) {
+                    document.querySelector("#video_player > div.vjs-text-track-display")?.remove();
+                }
+                break;
+            case "attributes":
+                // console.log(mutation.target, mutation.attributeName, mutation.oldValue);
+                if (domain == "bbs.ruliweb.com") {
+                    if (mutation.target.id == "push_bar" && mutation.target.style.display == "none") {
+                        mutation.target.removeAttribute("style");
+                        mutation.target.querySelector("a").target = "_blank";
+                        console.log(mutation.target.querySelector("a"));
+                    }
+                }
+                break;
+        }
+    });
+}
 
 function textReplace(root) {
     walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
@@ -137,7 +153,7 @@ function textReplace(root) {
         text = node.textContent;
         if (!/[가-힣]/.test(text)) continue;
         if (replaceJson["tagExcept"].includes(node.parentNode.tagName)) continue;
-        
+
         for (let end of replaceJson["ends"]) {
             regex = regexMap[end[0]];
             if (result = regex.exec(text)) {
@@ -222,238 +238,10 @@ function replaceAt(str, ...indices) {
 function main() {
     switch(domain) {
         case "bbs.ruliweb.com":
-            shortcut["f"] = "/best";
-            shortcut["g"] = "/best/political";
-            head = '<span style="color:red; font-weight:bold;">';
-            tail = "</span>";
-            if (url.includes("/read/")) {
-                let imgBtn = document.querySelector("button.btn_comment_img");
-                if (imgBtn && imgBtn.getAttribute("data-active") == "1") {
-                    imgBtn.click();
-                }
-            }
-            let trs = document.querySelectorAll("tr.table_body");
-            chrome.storage.local.get(["banList", "cache"], data => {
-                banList = data.banList;
-                cache = data.cache;
-                let banCodes = banList.user.map(user => user.code);
-                let banWords = banList.word;
-                promises = [];
-        
-                let writer, title, board;
-                for (let tr of trs) {
-                    if (url.includes("view=list")) {
-                        writer = tr.querySelector("td.writer.text_over").textContent.trim();
-                        title = tr.querySelector("td.subject > a");
-                        board = tr.querySelector("td.board_name").textContent.trim();
-                    }
-                    else {
-                        writer = tr.querySelector("a.nick").textContent.trim();
-                        title = tr.querySelector("a.title_wrapper");
-                        board = tr.querySelector("div.article_info > a").textContent.trim();
-                        tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
-                    }
-                    title.target = "_blank";
-                    if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
-                        tr.style.display = "none";
-                        console.log(title, title.childNodes[0].textContent.trim()+"\n"+writer.slice(0,2));
-                        // title.innerHTML+=`${head}←(병신)${tail}`;
-                    }
-                    
-                    if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
-                        let [writer, code] = result.info;
-                        if (banCodes.includes(code)) {
-                            hide(tr, writer, code, "main");
-                        }
-                    }
-                    else {
-                        promises.push(new Promise(resolve => {
-                            getNameCode(title.href, title)
-                            .then(([writer, code, title]) => {
-                                resolve();
-                                if (banCodes.includes(code)) {
-                                    hide(tr, writer, code, "main");
-                                }
-                                cache.main.pop();
-                                cache.main.unshift({
-                                    "link": title.href.split("?")[0],
-                                    "info": [writer, code],
-                                    "title": title.textContent.trim()
-                                });
-                            });
-                        }));
-                    }
-                }
-                let best = document.querySelector("div.list.best_date.active");
-                if (best) {
-                    let items = best.querySelectorAll("a.deco");
-                    for (let item of items) {
-                        item.target = "_blank";
-                        if (result = cache.top.find(top => top.link == item.href)) {
-                            let [writer, code] = result.info;
-                            if (banCodes.includes(code)) {
-                                hide(item, writer, code, "top");
-                            }
-                        }
-                        else {
-                            promises.push(new Promise(resolve => {
-                                getNameCode(item.href, item)
-                                .then(([writer, code, item]) => {
-                                    resolve();
-                                    if (banCodes.includes(code)) {
-                                        hide(item, writer, code, "top");
-                                    }
-                                    cache.top.pop();
-                                    cache.top.unshift({
-                                        "link": item.href,
-                                        "info": [writer, code],
-                                        "title": item.textContent.trim()
-                                    });
-                                });
-                            }));
-                        }
-                    }
-                }
-        
-                Promise.all(promises).then(() => {
-                    visible = [...trs].filter(tr => !tr.hasAttribute("style"));
-                    for (let i=0; i<Math.min(30,visible.length); i++) {
-                        let td;
-                        if (url.includes("view=list")) {
-                            td = visible[i].querySelector("td.subject");
-                        }
-                        else {
-                            td = visible[i].querySelector("div.text_wrapper");
-                        }
-                        let a = td.querySelector("a");
-                        let small = document.createElement("span");
-                        if (i<20) {
-                            small.textContent = `[${i+1}] `;
-                            shortcut[i] = a.href;
-                        }
-                        else {
-                            small.textContent = `[${numMap[i].toUpperCase()}] `;
-                            shortcut[numMap[i]] = a.href;
-                        }
-                        small.style.fontSize = "small";
-                        if (url.includes("view=list")) {
-                            td.insertBefore(small, a);
-                        }
-                        else {
-                            a.insertBefore(small, a.childNodes[0]);
-                        }
-                    }
-                    promises = [];
-                    chrome.storage.local.set({"cache": cache}, ()=>{});
-                });
-            });
-        
-            page = (new URL(url)).searchParams.get("page");
-            if (page) {
-                page = parseInt(page);
-                shortcut["a"] = url.replace(`page=${page}`, `page=${(page>1)? page-1 : 1}`);
-                shortcut["s"] = url.replace(`page=${page}`, `page=${page+1}`);
-            }
-            else {
-                page = 1;
-                if (location.search.includes("?")) {
-                    shortcut["s"] = `${url}&page=${page+1}`;
-                }
-                else {
-                    shortcut["s"] = `${url}?page=${page+1}`;
-                }
-            }
-            // for (let i=0; i<trs.length; i++) {
-            //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
-            // }
-            
-            chrome.extension.onMessage.addListener((req, sender, sendResponse) => {
-                if (req.url!==location.href || req.cmd!=="myExt") return;
-                let link;
-                while (contextMenuElement != document.body) {
-                    contextMenuElement = contextMenuElement.parentNode;
-                    if (url.includes("view=list")) {
-                        if (contextMenuElement.tagName == "TR" && contextMenuElement.classList.contains("table_body")) {
-                            link = contextMenuElement.querySelector("td.subject > a").href;
-                            break;
-                        }
-                    }
-                    else {
-                        if (contextMenuElement.tagName == "DIV" && contextMenuElement.classList.contains("text_wrapper")) {
-                            link = contextMenuElement.querySelector("a").href;
-                            break;
-                        }
-                    }
-                }
-                getNameCode(link)
-                .then(([writer, code]) => {
-                    console.log([writer, code]);
-                    if (writer && code) {
-                        let idx = banList.user.findIndex(user => user.code == code);
-                        console.log(banList);
-                        if (confirm([writer, code])) {
-                            if (idx > -1) {
-                                console.log([banList.user[idx].name, writer, code]);
-                                banList.user[idx].name.unshift(writer);
-                            }
-                            else {
-                                banList.user.push({name: [writer], code: code});
-                            }
-                            banList.user.sort((a,b) => {if(a.name[0]>b.name[0]) return 1; if(a.name[0]<b.name[0]) return -1; return 0;});
-                            chrome.storage.local.set({"banList": banList}, ()=>{console.log(banList); window.location.reload();});
-                        }
-                    }
-                });
-            });
+            ruliweb();
             break;
         case "www.dogdrip.net":
-            shortcut["f"] = "/";
-            if (url == "https://www.dogdrip.net/" || url == "https://www.dogdrip.net") {
-                let main = document.querySelectorAll("div.eq.section.secontent.background-color-content > div.xe-widget-wrapper");
-                main[0].style.display = "none";
-                main[8].style.display = "none";
-        
-                let boardList = [...document.querySelectorAll("div.eq.overflow-hidden")].slice(2);
-                let boardMap = {};
-                boardList.forEach(board => {
-                    boardMap[board.querySelector("a").textContent.trim()] = board.cloneNode(true);
-                });
-        
-                chrome.storage.sync.get("userBoardList", data => {
-                    for (let i=0; i<boardList.length; i++) {
-                        if (i < data.userBoardList.length) {
-                            boardList[i].parentNode.replaceChild(boardMap[data.userBoardList[i]], boardList[i]);
-                        }
-                        boardList[i].remove();
-                    }
-        
-                    document.querySelectorAll("ul.eq.widget.widget-normal > li").forEach((li, i) => {
-                        let a = li.querySelector("a");
-                        a.target = "_blank";
-                        if (i<22) {
-                            let small = document.createElement("span");
-                            small.textContent = `[${i+1}] `;
-                            small.style.fontSize = "small";
-                            small.style.color = "#fff";
-                            let div = li.querySelector("div.eq.width-expand");
-                            div.insertBefore(small, div.querySelector("span"));
-                            if (i<20) {
-                                shortcut[i] = a.href;
-                            }
-                            else if (i==20) {
-                                shortcut["-"] = a.href;
-                            }
-                            else if (i==21) {
-                                shortcut["="] = a.href;
-                            }
-                        }
-                    });
-                });
-        
-                // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
-                //     appendTooltip(li.querySelector("a"));
-                // }
-            }
+            dogdrip();
             break;
         case "namu.wiki":
             namu();
@@ -462,49 +250,266 @@ function main() {
             document.querySelectorAll("script").forEach(script => {script.remove();});
             // saveAs(URL.createObjectURL(new Blob([document.documentElement.outerHTML], {type: "text/html"})),"save.html");
             break;
+        case "dood.sh":
+            window.open = null;
+            HTMLElement.prototype.click = null;
+            HTMLAnchorElement.prototype.click = null;
+            break;
+    }
+}
+
+function ruliweb() {
+    shortcut["f"] = "/best";
+    shortcut["g"] = "/best/political";
+    head = '<span style="color:red; font-weight:bold;">';
+    tail = "</span>";
+
+    if (url.includes("/read/")) {
+        let imgBtn = document.querySelector("button.btn_comment_img");
+        if (imgBtn && imgBtn.getAttribute("data-active") == "1") {
+            imgBtn.click();
+        }
+    }
+
+    let trs = document.querySelectorAll("tr.table_body");
+    chrome.storage.local.get(["banList", "cache"], async (data) => {
+        banList = data.banList;
+        cache = data.cache;
+        let banCodes = banList.user.map(user => user.code);
+        let banWords = banList.word;
+        let writer, title, board;
+        boardPromises = [];
+        bestPromises = [];
+    
+        for (let tr of trs) {
+            writer = tr.querySelector("a.nick").textContent.trim();
+            title = tr.querySelector("a.title_wrapper");
+            board = tr.querySelector("div.article_info > a").textContent.trim();
+            tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
+            title.target = "_blank";
+            if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
+                tr.hidden = true;
+                console.log(title, title.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
+                // title.innerHTML+=`${head}←(병신)${tail}`;
+            }
+
+            if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
+                let [writer, code] = result.info;
+                if (banCodes.includes(code)) {
+                    hide(tr, writer, code, "main");
+                }
+            }
+            else {
+                boardPromises.push(new Promise(resolve => {
+                    getNameCode(title.href, title)
+                    .then(([writer, code, title]) => {
+                        resolve();
+                        if (banCodes.includes(code)) {
+                            hide(tr, writer, code, "main");
+                        }
+                        cache.main.pop();
+                        cache.main.unshift({
+                            "link": title.href.split("?")[0],
+                            "info": [writer, code],
+                            "title": title.textContent.trim()
+                        });
+                    });
+                }));
+                await sleep(50);
+            }
+        }
+
+        Promise.all(boardPromises).then(() => {
+            visible = [...trs].filter(tr => !tr.hidden);
+            visible.forEach((tr, i) => {
+                let td = tr.querySelector("div.text_wrapper");
+                let a = td.querySelector("a");
+                let small = document.createElement("span");
+                if (i<20) {
+                    small.textContent = `[${i+1}] `;
+                    shortcut[i] = a.href;
+                }
+                else {
+                    small.textContent = `[${numMap[i].toUpperCase()}] `;
+                    shortcut[numMap[i]] = a.href;
+                }
+                small.style.fontSize = "small";
+                a.prepend(small);
+
+            });
+            boardPromises.length = 0;
+        });
+
+        let best = document.querySelector("div.list.best_date.active");
+        if (best) {
+            let items = best.querySelectorAll("a.deco");
+            for (let item of items) {
+                item.target = "_blank";
+                if (result = cache.top.find(top => top.link == item.href)) {
+                    let [writer, code] = result.info;
+                    if (banCodes.includes(code)) {
+                        hide(item, writer, code, "top");
+                    }
+                }
+                else {
+                    bestPromises.push(new Promise(resolve => {
+                        getNameCode(item.href, item)
+                        .then(([writer, code, item]) => {
+                            resolve();
+                            if (banCodes.includes(code)) {
+                                hide(item, writer, code, "top");
+                            }
+                            cache.top.pop();
+                            cache.top.unshift({
+                                "link": item.href,
+                                "info": [writer, code],
+                                "title": item.textContent.trim()
+                            });
+                        });
+                    }));
+                    await sleep(1000);
+                }
+            }
+        }
+
+        Promise.all(bestPromises).then(() => {
+            bestPromises.length = 0;
+            chrome.storage.local.set({"cache": cache}, ()=>{});
+        });
+    });
+
+    page = (new URL(url)).searchParams.get("page");
+    if (page) {
+        page = parseInt(page);
+        shortcut["a"] = url.replace(`page=${page}`, `page=${(page>1)? page-1 : 1}`);
+        shortcut["s"] = url.replace(`page=${page}`, `page=${page+1}`);
+    }
+    else {
+        page = 1;
+        if (location.search.includes("?")) {
+            shortcut["s"] = `${url}&page=${page+1}`;
+        }
+        else {
+            shortcut["s"] = `${url}?page=${page+1}`;
+        }
+    }
+    // for (let i=0; i<trs.length; i++) {
+    //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
+    // }
+
+    chrome.extension.onMessage.addListener((req, sender, sendResponse) => {
+        if (req.url!==location.href || req.cmd!=="myExt") return;
+        let link = contextMenuElement.closest("div.text_wrapper").querySelector("a").href;
+        getNameCode(link)
+        .then(([writer, code]) => {
+            console.log([writer, code]);
+            if (writer && code) {
+                let idx = banList.user.findIndex(user => user.code == code);
+                console.log(banList);
+                if (confirm([writer, code])) {
+                    if (idx > -1) {
+                        console.log([banList.user[idx].name, writer, code]);
+                        banList.user[idx].name.unshift(writer);
+                    }
+                    else {
+                        banList.user.push({name: [writer], code: code});
+                    }
+                    banList.user.sort((a,b) => {if(a.name[0]>b.name[0]) return 1; if(a.name[0]<b.name[0]) return -1; return 0;});
+                    chrome.storage.local.set({"banList": banList}, ()=>{console.log(banList); window.location.reload();});
+                }
+            }
+        });
+    });
+}
+
+function dogdrip() {
+    shortcut["f"] = "/";
+    if (url == "https://www.dogdrip.net/" || url == "https://www.dogdrip.net") {
+        let main = document.querySelectorAll("div.eq.section.secontent.background-color-content > div.xe-widget-wrapper");
+        main[0].hidden = true;
+        main[8].hidden = true;
+
+        let boardList = [...document.querySelectorAll("div.eq.overflow-hidden")].slice(2);
+        let boardMap = Object.fromEntries(boardList.map(board => [board.querySelector("a").textContent.trim(), board]));
+
+        chrome.storage.sync.get("userBoardList", data => {
+            boardList.map(board => board.parentNode).forEach((parent, i) => {
+                let board = parent.querySelector("div.eq.overflow-hidden");
+                if (i < data.userBoardList.length) {
+                    swap(board, boardMap[data.userBoardList[i]]);
+                }
+                else {
+                    board.remove();
+                }
+            });
+
+            document.querySelectorAll("ul.eq.widget.widget-normal > li").forEach((li, i) => {
+                let a = li.querySelector("a");
+                a.target = "_blank";
+                if (i<22) {
+                    let small = document.createElement("span");
+                    small.textContent = `[${i+1}] `;
+                    small.style.fontSize = "small";
+                    small.style.color = "#fff";
+                    let div = li.querySelector("div.eq.width-expand");
+                    div.prepend(small);
+                    if (i<20) {
+                        shortcut[i] = a.href;
+                    }
+                    else if (i==20) {
+                        shortcut["-"] = a.href;
+                    }
+                    else if (i==21) {
+                        shortcut["="] = a.href;
+                    }
+                }
+            });
+        });
+
+        // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
+        //     appendTooltip(li.querySelector("a"));
+        // }
     }
 }
 
 function namu() {
     url = document.URL;
-    [...document.querySelector("aside").querySelectorAll(".c")].slice(2).forEach(div => {div.style.display = "none";});
-    if (url.includes("namu.wiki/history/")) {
-        let xpath = "//a[text() = '비교']/../../..";
-        let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-        if (ul) {
-            ul.querySelectorAll("li").forEach(li => {
-                let id = li.querySelector("div");
-                let a = id.querySelector("a");
-                a.target = "_blank";
-                if (["180.224.237.249","49.171.158.105"].includes(id.textContent.trim())) {
-                    a.style["text-decoration"] = "line-through";
-                    li.querySelectorAll(":scope > span")[2].textContent = "";
-                }
-            });
+    let xpath = "//h5[text() = '최근 변경']/..";
+    // let div = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    document.querySelectorAll("aside > div").forEach(div => {
+        if (div.querySelector("h5") && div.querySelector("h5").textContent != "최근 변경" && div.style.display != "none") {
+            div.style.display = "none";
         }
+    });
+    if (url.includes("namu.wiki/history/")) {
+        xpath = "//a[text() = '비교']/../../..";
+        let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        ul?.querySelectorAll("li").forEach(li => {
+            let id = li.querySelector("div");
+            let a = id.querySelector("a");
+            a.target = "_blank";
+            if (["180.224.237.249","49.171.158.105"].includes(id.textContent.trim())) {
+                a.style["text-decoration"] = "line-through";
+                li.querySelectorAll(":scope > span")[2].textContent = "";
+            }
+        });
     }
     else if (url.includes("starred_documents")) {
-        let xpath = "//li[contains(text(), '수정시각')]/..";
+        xpath = "//li[contains(text(), '수정시각')]/..";
         let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-        if (ul) {
-            ul.querySelectorAll("li > a").forEach(a => {
-                a.href = a.href.replace("/w","/history");
-                a.target = "_blank";
-            });
-        }
+        ul?.querySelectorAll("li > a").forEach(a => {
+            a.href = a.href.replace("/w","/history");
+            a.target = "_blank";
+        });
     }
     else if (url.includes("namu.wiki/edit/")) {
         let check = document.querySelector("input[type='checkbox']");
-        if (check) {
-            check.parentNode.nextElementSibling.addEventListener("click", () => {
-                if (!check.checked) {
-                    check.click();
-                }
-            });
+        if (!check?.checked) {
+            check.click();
         }
     }
     else {
-        // let xpath = "//a[text() = '편집']/..";
+        // xpath = "//a[text() = '편집']/..";
         // if (result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
         //     result = [...result.querySelectorAll("a")].slice(1);
         //     for (let a of result) {
@@ -516,14 +521,9 @@ function namu() {
 
 function hide(elem, writer, code, board) {
     if (board == "main") {
-        elem.style.display = "none";
-        if (url.includes("view=list")) {
-            console.log(elem.querySelector("td.subject > a"), writer.slice(0,2));
-        }
-        else {
-            let a = elem.querySelector("a.title_wrapper");
-            console.log(a, a.childNodes[0].textContent.trim()+"\n"+writer.slice(0,2));
-        }
+        elem.hidden = true;
+        let a = elem.querySelector("a.title_wrapper");
+        console.log(a, a.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
     }
     else if (board == "top") {
         elem.innerHTML = `${head}()${tail}`;
@@ -584,13 +584,6 @@ function replaceDeubg(root) {
     }
 }
 
-function select(...elems) {
-    for (let elem of elems) {
-        if (elem) return elem;
-    }
-    return null;
-}
-
 function appendTooltip(item, count) {
     if (item.className) {
         item.className += " myTooltip";
@@ -607,29 +600,6 @@ function appendTooltip(item, count) {
     });
 }
 
-function listAllEventListeners() {
-    const allElements = [document, ...document.querySelectorAll("*")];
-    const types = [];
-    for (let ev in window) {
-      if (/^on/.test(ev)) types[types.length] = ev;
-    }
-    
-    let elements = [];
-    for (let i = 0; i < allElements.length; i++) {
-        const currentElement = allElements[i];
-        for (let j = 0; j < types.length; j++) {
-            if (typeof currentElement[types[j]] === 'function') {
-                elements.push({
-                    "node": currentElement,
-                    "type": types[j],
-                    "func": currentElement[types[j]].toString(),
-              });
-           }
-        }
-    }
-    return elements.sort((a,b) => {return a.type.localeCompare(b.type);});
-}
-
 function saveAs(uri, filename) {
     let link = document.createElement('a');
     if (typeof link.download === 'string') {
@@ -637,8 +607,19 @@ function saveAs(uri, filename) {
         link.download = filename;
         link.href = uri;
         link.click();
-        document.body.removeChild(link); // remove the link when done
+        link.remove(); // remove the link when done
     } else {
         location.replace(uri);
+    }
+}
+
+function swap(srcNode, destNode) {
+    let [next, parent] = [srcNode.nextSibling, srcNode.parentNode];
+    destNode.replaceWith(srcNode);
+    if (next) {
+        next.before(destNode);
+    }
+    else {
+        parent.append(destNode);
     }
 }

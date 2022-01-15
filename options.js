@@ -32,57 +32,48 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
             }
         })
     })
+    document.querySelector("pre").textContent = doc.querySelector("tbody").textContent.trim().replace(/\n(\s)\s+/g, "\n$1");
 });
+recoverCache();
 
 function appendUser(userList, user) {
-    let li = document.createElement("li");
+    let template = document.querySelector("#userTemplate").content.cloneNode(true);
+
+    let li = template.firstElementChild;
     li.id = `code-${user.code}`;
-    let nick = document.createElement("span");
-    nick.className = "name";
+    let nick = template.querySelector("span");
     for (let name of user.name) {
-        nick.innerHTML += `${name}<br>`;
+        nick.append(name, document.createElement("br"));
     }
-    let code = document.createElement("span");
-    code.className = "code";
-    code.textContent = user.code;
-    let btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "delUser";
-    btn.textContent = "del";
-    btn.addEventListener("click", event => {
+    template.querySelector("span + span").textContent = user.code;
+    template.querySelector("button").addEventListener("click", event => {
         let code = event.target.previousElementSibling.textContent;
         let idx = banList.user.findIndex(user => user.code == code);
         if (idx > -1) banList.user.splice(idx, 1);
         event.target.parentNode.remove();
         save();
     });
-    li.append(nick, code, btn);
     userList.append(li);
 }
 
 function appendWord(wordList, word) {
-    let li = document.createElement("li");
-    let name = document.createElement("span");
-    name.className = "name";
-    name.textContent = word;
-    let btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "delWord";
-    btn.textContent = "del";
-    btn.addEventListener("click", event => {
+    let template = document.querySelector("#wordTemplate").content.cloneNode(true);
+
+    template.querySelector("span").textContent = word;
+    template.querySelector("button").addEventListener("click", event => {
         let word = event.target.previousElementSibling.textContent;
         let idx = banList.word.indexOf(word);
         if (idx > -1) banList.word.splice(idx, 1);
         event.target.parentNode.remove();
         save();
     });
-    li.append(name, btn);
-    wordList.append(li);
+    wordList.append(template.firstElementChild);
 }
 
 function appendReplace(replaceLi, original, replace) {
-    let li = document.createElement("li");
-    li.draggable = true;
+    let template = document.querySelector("#replaceTemplate").content.cloneNode(true);
+
+    let li = template.firstElementChild;
     li.setAttribute("data-index",replaceLi.querySelectorAll("li").length);
     li.addEventListener("dragstart", event => {
         dragged = event.target;
@@ -104,16 +95,11 @@ function appendReplace(replaceLi, original, replace) {
     });
     li.addEventListener("dragenter", event => {
         if (dragged && (dragged != event.target)) {
-            if (next = event.target.nextElementSibling) {
-                if (next == dragged) {  //상승
-                    event.target.parentNode.insertBefore(dragged, event.target)
-                }
-                else {  //하강
-                    event.target.parentNode.insertBefore(dragged, next)
-                }
+            if (dragged == event.target.nextElementSibling) {  //상승
+                event.target.before(dragged);
             }
-            else {  //맨 아랫줄
-                event.target.parentNode.append(dragged)
+            else if (dragged == event.target.previousElementSibling){  //하강
+                event.target.after(dragged);
             }
         }
     });
@@ -121,9 +107,7 @@ function appendReplace(replaceLi, original, replace) {
         event.preventDefault();
     });
 
-    let orig = document.createElement("input");
-    orig.type = "text";
-    orig.className = "original";
+    let orig = template.querySelector("input");
     orig.value = original;
     orig.addEventListener("focus", event => {
         event.target.setAttribute("oldValue", event.target.value);
@@ -132,26 +116,19 @@ function appendReplace(replaceLi, original, replace) {
         replaceList[event.target.parentNode.getAttribute("data-index")][0] = event.target.value;
         //save();
     });
-    let rep = document.createElement("input");
-    rep.type = "text";
-    rep.className = "replace";
+    let rep = template.querySelector("input + input");
     rep.value = replace;
     rep.addEventListener("change", event => {
         replaceList[event.target.parentNode.getAttribute("data-index")][1] = event.target.value;
         //save();
     });
 
-    let del = document.createElement("button");
-    del.type = "button";
-    del.className = "delReplace";
-    del.textContent = "del";
-    del.addEventListener("click", event => {
+    template.querySelector("button").addEventListener("click", event => {
         replaceList.splice(event.target.parentNode.getAttribute("data-index"), 1);
         event.target.parentNode.remove();
         //save();
     });
-    
-    li.append(orig, rep, del, "　↕");
+
     replaceLi.append(li);
 }
 
@@ -247,7 +224,10 @@ document.querySelector("#resetWord").addEventListener("click", () => {
 
 let boardList = [];
 let userBoardList = [];
-let draggables = [...document.querySelectorAll("#user td")].slice(2);
+document.querySelectorAll("table#original tr").forEach(tr => {
+    document.querySelector("table#user").append(tr.cloneNode(true));
+});
+let draggables = [...document.querySelectorAll("table#user td")].slice(2);
 let dragged;
 
 fetch("https://www.dogdrip.net/")
@@ -263,10 +243,11 @@ fetch("https://www.dogdrip.net/")
             td[i].textContent = boardList[i];
         }
         else if (i < boardList.length) {
-            let label = document.createElement("label");
-            let input = document.createElement("input");
-            input.type = "checkbox";
+            let template = document.querySelector("#checkboxTemplate").content.cloneNode(true);
+
+            let input = template.querySelector("input");
             input.value = boardList[i];
+            input.nextSibling.textContent = boardList[i];
             input.addEventListener("change", event => {
                 if (event.target.checked) {
                     userBoardList.push(event.target.value);
@@ -278,8 +259,7 @@ fetch("https://www.dogdrip.net/")
                 save();
                 updateTable();
             });
-            label.append(input, boardList[i]);
-            td[i].append(label);
+            td[i].append(template.firstElementChild);
         }
         else {
             td[i].textContent = "\u00A0";
@@ -398,7 +378,19 @@ function clearCache() {
         for (let i=0; i<data.cache.top.length; i++) {
             data.cache.top[i] = {"link":"", "info":[], "title":""};
         }
-        chrome.storage.local.set({"cache": data.cache}, ()=>{})
+        chrome.storage.local.set({"cache": data.cache}, ()=>{});
+    });
+}
+
+function recoverCache() {
+    chrome.storage.local.get("cache", data => {
+        while (data.cache.main.length < 360) {
+            data.cache.main.push({"link":"", "info":[], "title":""});
+        }
+        while (data.cache.top.length < 60) {
+            data.cache.top.push({"link":"", "info":[], "title":""});
+        }
+        chrome.storage.local.set({"cache": data.cache}, ()=>{});
     });
 }
 

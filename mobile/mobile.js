@@ -37,29 +37,39 @@ chrome.storage.local.get("replace", data => {
         regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
     });
 
-    observer = new MutationObserver((mutationList, observer) => {
-        mutationList.forEach(mutation => {
-            if (mutation.type == "childList") {
-                if (!replaceJson["domainExcept"].includes(domain)) {
-                    textReplace(mutation.target);
-                }
-            }
-        });
-    });
+    observer = new MutationObserver(observeCallback);
     observer.observe(document.body, {childList: true, subtree: true, attributes: false});
+    try {
+        document.querySelectorAll("iframe").forEach(iframe => {
+            let observer = new MutationObserver(observeCallback);
+            observer.observe(iframe.contentDocument.body, {childList: true, subtree: true, attributes: false});
+        });
+    } catch (error) {
+        // console.log("iframe: "+error);
+    }
 
     if (!replaceJson["domainExcept"].includes(domain)) {
         textReplace(document.body);
         textReplace(document.head.querySelector("title"));
-        document.querySelectorAll("iframe").forEach(iframe => {
-            try {
-                textReplace(iframe.contentWindow.document.body);
-            } catch (error) {
-                // console.log("iframe: "+error);
-            }
-        });
+        try {
+            document.querySelectorAll("iframe").forEach(iframe => {
+                textReplace(iframe.contentDocument.body);
+            });
+        } catch (error) {
+            // console.log("iframe: "+error);
+        }
     }
 });
+
+function observeCallback(mutationList) {
+    mutationList.forEach(mutation => {
+        if (mutation.type == "childList") {
+            if (!replaceJson["domainExcept"].includes(domain)) {
+                textReplace(mutation.target);
+            }
+        }
+    });
+}
 
 function textReplace(root) {
     walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
