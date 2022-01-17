@@ -66,7 +66,7 @@ document.addEventListener("keyup", event => {
     }
 })
 document.addEventListener("contextmenu", event => {
-    console.log(event.target);
+    // console.log(event.target);
     contextMenuElement = event.target;
 });
 
@@ -288,7 +288,7 @@ function ruliweb() {
             let banCodes = banList.user.map(user => user.code);
             let banWords = banList.word;
             let bestPromises = [];
-        
+
             let i = 0;
             for (let tr of trs) {
                 let writer = tr.querySelector("a.nick").textContent.trim();
@@ -300,7 +300,7 @@ function ruliweb() {
                     console.log(title, title.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
                     // title.innerHTML+=`${head}←(병신)${tail}`;
                 }
-    
+
                 if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
                     let [writer, code] = result.info;
                     if (banCodes.includes(code)) {
@@ -321,7 +321,7 @@ function ruliweb() {
                     });
                     await sleep(500);
                 }
-    
+
                 if (!tr.hidden) {
                     let a = tr.querySelector("div.text_wrapper a");
                     let small = document.createElement("span");
@@ -331,7 +331,7 @@ function ruliweb() {
                     }
                     else {
                         small.textContent = `[${numMap[i].toUpperCase()}] `;
-                        shortcut[numMap[i]] = a.href;
+                        shortcut[numMap[i]] = {"url": a.href, "target": "_blank"};
                     }
                     small.style.fontSize = "small";
                     a.prepend(small);
@@ -339,7 +339,7 @@ function ruliweb() {
                 }
             }
             chrome.storage.local.set({"cache": cache}, ()=>{});
-    
+
             let best = document.querySelector("div.list.best_date.active");
             if (best) {
                 let items = best.querySelectorAll("a.deco");
@@ -372,7 +372,7 @@ function ruliweb() {
                     }
                 }
             }
-    
+
             Promise.all(bestPromises).then(() => {
                 bestPromises.length = 0;
                 chrome.storage.local.set({"cache": cache}, ()=>{});
@@ -393,7 +393,7 @@ function ruliweb() {
     //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
     // }
 
-    chrome.extension.onMessage.addListener((req, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         if (req.url!==location.href || req.cmd!=="myExt") return;
         let link = contextMenuElement.closest("div.text_wrapper").querySelector("a").href;
         getNameCode(link)
@@ -562,7 +562,7 @@ function dcinside() {
     trs.forEach(tr => {
         let subject = tr.querySelector("td.gall_subject");
         let a = tr.querySelector("td.gall_tit > a");
-        
+
         a.target = "_blank";
         if (a2 = a.nextElementSibling) {
             a2.target = "_blank";
