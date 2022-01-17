@@ -468,7 +468,7 @@ function dogdrip() {
         //     appendTooltip(li.querySelector("a"));
         // }
     }
-    else if (!new URLPattern({pathname: "/(^\\d+)"}).test(url)) {
+    else if (!new URLPattern({pathname: "/(\\d+)"}).test(url)) {
         document.querySelectorAll("tbody tr:not(.notice)")?.forEach((tr, i) => {
             let a = tr.querySelector("td.title a.ed");
             let small = tr.querySelector("td.no");
