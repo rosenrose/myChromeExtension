@@ -229,7 +229,7 @@ function textReplace(root) {
 }
 
 function replaceAt(str, ...indices) {
-    indices = indices.sort((a,b) => (a[1][0]>b[1][0])? 1:-1);
+    indices = indices.sort((a,b) => (a[1][0] > b[1][0])? 1 : -1);
     let result = [];
     result.push(str.slice(0, indices[0][1][0]));
     for (let i=0; i<indices.length; i++) {
@@ -410,7 +410,7 @@ function ruliweb() {
                     else {
                         banList.user.push({name: [writer], code: code});
                     }
-                    banList.user.sort((a,b) => {if(a.name[0]>b.name[0]) return 1; if(a.name[0]<b.name[0]) return -1; return 0;});
+                    banList.user.sort((a,b) => (a.name[0] > b.name[0])? 1 : -1);
                     chrome.storage.local.set({"banList": banList}, ()=>{console.log(banList); window.location.reload();});
                 }
             }
@@ -420,6 +420,9 @@ function ruliweb() {
 
 function dogdrip() {
     shortcut["f"] = {"url": "/"};
+    shortcut["a"] = {"url": "/computer"};
+    shortcut["s"] = {"url": "/movie"};
+
     if (url.pathname == "/") {
         let main = document.querySelectorAll("div.eq.section.secontent.background-color-content > div.xe-widget-wrapper");
         main[0].hidden = true;
@@ -461,10 +464,23 @@ function dogdrip() {
                 }
             });
         });
-
         // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
         //     appendTooltip(li.querySelector("a"));
         // }
+    }
+    else if (!new URLPattern({pathname: "/(^\\d+)"}).test(url)) {
+        document.querySelectorAll("tbody tr:not(.notice)")?.forEach((tr, i) => {
+            let a = tr.querySelector("td.title a.ed");
+            let small = tr.querySelector("td.no");
+            if (i < 20) {
+                small.textContent += `[${i+1}] `;
+                shortcut[i] = a.href;
+            }
+            else {
+                small.textContent += `[${numMap[i].toUpperCase()}] `;
+                shortcut[numMap[i]] = {"url": a.href, "target": "_blank"};
+            }
+        });
     }
 }
 

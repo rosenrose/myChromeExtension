@@ -345,7 +345,7 @@ document.querySelector("#resetButton").addEventListener("click", () => {
 });
 
 function save() {
-    banList.user.sort((a,b) => {if(a.name[0]>b.name[0]) return 1; if(a.name[0]<b.name[0]) return -1; return 0;});
+    banList.user.sort((a,b) => (a.name[0] > b.name[0])? 1 : -1);
     banList.word.sort();
     chrome.storage.local.set({"banList": banList}, ()=>{});
     chrome.storage.sync.set({"userBoardList": userBoardList}, ()=>{});
@@ -363,11 +363,7 @@ function backup() {
 
 function replaceSort() {
     let regex = /[\d가-힣ㄱ-ㅎ]/;
-    replaceList.sort((a,b) => {
-        if(a[0].match(regex)[0]>b[0].match(regex)[0]) return 1;
-        if(a[0].match(regex)[0]<b[0].match(regex)[0]) return -1;
-        return 0;
-    });
+    replaceList.sort((a,b) => (a[0].match(regex)[0] > b[0].match(regex)[0])? 1 : -1);
 }
 
 function clearCache() {
