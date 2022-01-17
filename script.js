@@ -1,4 +1,4 @@
-[domain, url] = [document.domain, document.URL];
+[domain, url] = [document.domain, new URL(document.URL)];
 shortcut = {};
 alt = new Set();
 numMap = {
@@ -10,52 +10,59 @@ numMap = {
 contextMenuElement = null;
 jamoRegex = /(?<=\{).+?(?=\})/;
 zipRegex = /(?<=\()(?<![?!=<]+)[^?!=<]+?(?=\))/g;
-mutex = false;
 regexMap = {};
 sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 document.addEventListener("keydown", event => {
-    let tagName = event.target.tagName;
-    if ((tagName != 'INPUT') && (tagName != 'TEXTAREA')) {
-        let [key, code] = [event.key, event.code];
-        // console.log(key, code, "shift", event.shiftKey, "alt", event.altKey, "ctrl", event.ctrlKey);
-        if (code.startsWith("Digit") || code.startsWith("Numpad")) {
-            let num = parseInt(code.slice(-1));
-            if (event.shiftKey || (!event.shiftKey && num != key)) { //쉬프트+넘패드
-                num = ((num+9)%10)+10;
+    let [key, code] = [event.key, event.code];
+    // console.log(key, code, "shift", event.shiftKey, "alt", event.altKey, "ctrl", event.ctrlKey);
+
+    if (event.target.matches("input, textarea")) {
+        return;
+    }
+    if (code.startsWith("Digit") || code.startsWith("Numpad")) {
+        let input = parseInt(code.slice(-1));
+        let num = (input + 9) % 10;
+
+        if (event.shiftKey || (!event.shiftKey && input != key)) { //쉬프트+일반 || 쉬프트+넘패드
+            num += 10;
+        }
+
+        if (shortcut[num]) {
+            if (event.altKey) {
+                alt.add(shortcut[num]);
             }
             else {
-                num = (num+9)%10;
-            }
-            if (shortcut[num]) {
-                if (event.altKey) {
-                    alt.add(shortcut[num]);
-                }
-                else {
-                    window.open(shortcut[num], "_blank");
-                }
+                window.open(shortcut[num], "_blank");
             }
         }
-        else if (shortcut[key.toLowerCase()] && !event.ctrlKey) {
-            if ("qwertyuiop-=".includes(key.toLowerCase())) {
-                window.open(shortcut[key.toLowerCase()], "_blank");
+    }
+    else if (shortcut[key.toLowerCase()] && !event.ctrlKey) {
+        let short = shortcut[key.toLowerCase()];
+
+        if (typeof short == "object") {
+            if ("target" in short) {
+                window.open(short.url, short.target);
             }
             else {
-                window.location = shortcut[key.toLowerCase()];
+                window.location = short.url;
             }
         }
-        else if (key.toLowerCase() == "q" && event.ctrlKey) {
-            window.open(document.URL);
+        else if (typeof short == "function") {
+            short();
         }
-        else if (key == "Backspace" && tagName == "BODY" && document.designMode == "off") {
-            window.history.back();
-        }
+    }
+    else if (key.toLowerCase() == "q" && event.ctrlKey) {   //탭 복제
+        window.open(document.URL);
+    }
+    else if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") { //뒤로가기
+        window.history.back();
     }
 });
 document.addEventListener("keyup", event => {
     if (event.key == "Alt" && alt.size) {
         alt.forEach(a => {window.open(a, "_blank");});
-        alt = new Set();
+        alt.clear();
     }
 })
 document.addEventListener("contextmenu", event => {
@@ -246,6 +253,9 @@ function main() {
         case "namu.wiki":
             namu();
             break;
+        case "dcinside.com":
+            dcinside();
+            break;
         case "novelpia.com":
             document.querySelectorAll("script").forEach(script => {script.remove();});
             // saveAs(URL.createObjectURL(new Blob([document.documentElement.outerHTML], {type: "text/html"})),"save.html");
@@ -259,140 +269,126 @@ function main() {
 }
 
 function ruliweb() {
-    shortcut["f"] = "/best";
-    shortcut["g"] = "/best/political";
+    shortcut["f"] = {"url": "/best"};
+    shortcut["g"] = {"url": "/best/political"};
     head = '<span style="color:red; font-weight:bold;">';
     tail = "</span>";
 
-    if (url.includes("/read/")) {
+    if (new URLPattern({pathname: "*/read/*"}).test(url)) {
         let imgBtn = document.querySelector("button.btn_comment_img");
         if (imgBtn && imgBtn.getAttribute("data-active") == "1") {
             imgBtn.click();
         }
     }
-
-    let trs = document.querySelectorAll("tr.table_body");
-    chrome.storage.local.get(["banList", "cache"], async (data) => {
-        banList = data.banList;
-        cache = data.cache;
-        let banCodes = banList.user.map(user => user.code);
-        let banWords = banList.word;
-        let writer, title, board;
-        boardPromises = [];
-        bestPromises = [];
+    else {
+        let trs = document.querySelectorAll("tr.table_body");
+        chrome.storage.local.get(["banList", "cache"], async (data) => {
+            banList = data.banList;
+            cache = data.cache;
+            let banCodes = banList.user.map(user => user.code);
+            let banWords = banList.word;
+            let bestPromises = [];
+        
+            let i = 0;
+            for (let tr of trs) {
+                let writer = tr.querySelector("a.nick").textContent.trim();
+                let title = tr.querySelector("a.title_wrapper");
+                tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
+                title.target = "_blank";
+                if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
+                    tr.hidden = true;
+                    console.log(title, title.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
+                    // title.innerHTML+=`${head}←(병신)${tail}`;
+                }
     
-        for (let tr of trs) {
-            writer = tr.querySelector("a.nick").textContent.trim();
-            title = tr.querySelector("a.title_wrapper");
-            board = tr.querySelector("div.article_info > a").textContent.trim();
-            tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
-            title.target = "_blank";
-            if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
-                tr.hidden = true;
-                console.log(title, title.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
-                // title.innerHTML+=`${head}←(병신)${tail}`;
-            }
-
-            if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
-                let [writer, code] = result.info;
-                if (banCodes.includes(code)) {
-                    hide(tr, writer, code, "main");
-                }
-            }
-            else {
-                boardPromises.push(new Promise(resolve => {
-                    getNameCode(title.href, title)
-                    .then(([writer, code, title]) => {
-                        resolve();
-                        if (banCodes.includes(code)) {
-                            hide(tr, writer, code, "main");
-                        }
-                        cache.main.pop();
-                        cache.main.unshift({
-                            "link": title.href.split("?")[0],
-                            "info": [writer, code],
-                            "title": title.textContent.trim()
-                        });
-                    });
-                }));
-                await sleep(50);
-            }
-        }
-
-        Promise.all(boardPromises).then(() => {
-            visible = [...trs].filter(tr => !tr.hidden);
-            visible.forEach((tr, i) => {
-                let td = tr.querySelector("div.text_wrapper");
-                let a = td.querySelector("a");
-                let small = document.createElement("span");
-                if (i<20) {
-                    small.textContent = `[${i+1}] `;
-                    shortcut[i] = a.href;
-                }
-                else {
-                    small.textContent = `[${numMap[i].toUpperCase()}] `;
-                    shortcut[numMap[i]] = a.href;
-                }
-                small.style.fontSize = "small";
-                a.prepend(small);
-
-            });
-            boardPromises.length = 0;
-        });
-
-        let best = document.querySelector("div.list.best_date.active");
-        if (best) {
-            let items = best.querySelectorAll("a.deco");
-            for (let item of items) {
-                item.target = "_blank";
-                if (result = cache.top.find(top => top.link == item.href)) {
+                if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
                     let [writer, code] = result.info;
                     if (banCodes.includes(code)) {
-                        hide(item, writer, code, "top");
+                        hide(tr, writer, code, "main");
                     }
                 }
                 else {
-                    bestPromises.push(new Promise(resolve => {
-                        getNameCode(item.href, item)
-                        .then(([writer, code, item]) => {
-                            resolve();
-                            if (banCodes.includes(code)) {
-                                hide(item, writer, code, "top");
-                            }
-                            cache.top.pop();
-                            cache.top.unshift({
-                                "link": item.href,
-                                "info": [writer, code],
-                                "title": item.textContent.trim()
-                            });
-                        });
-                    }));
-                    await sleep(1000);
+                    // console.log("FETCH", tr);
+                    let [writer, code] = await getNameCode(title.href);
+                    if (banCodes.includes(code)) {
+                        hide(tr, writer, code, "main");
+                    }
+                    cache.main.pop();
+                    cache.main.unshift({
+                        "link": title.href.split("?")[0],
+                        "info": [writer, code],
+                        "title": title.textContent.trim()
+                    });
+                    await sleep(500);
+                }
+    
+                if (!tr.hidden) {
+                    let a = tr.querySelector("div.text_wrapper a");
+                    let small = document.createElement("span");
+                    if (i < 20) {
+                        small.textContent = `[${i+1}] `;
+                        shortcut[i] = a.href;
+                    }
+                    else {
+                        small.textContent = `[${numMap[i].toUpperCase()}] `;
+                        shortcut[numMap[i]] = a.href;
+                    }
+                    small.style.fontSize = "small";
+                    a.prepend(small);
+                    i += 1;
                 }
             }
-        }
-
-        Promise.all(bestPromises).then(() => {
-            bestPromises.length = 0;
             chrome.storage.local.set({"cache": cache}, ()=>{});
+    
+            let best = document.querySelector("div.list.best_date.active");
+            if (best) {
+                let items = best.querySelectorAll("a.deco");
+                for (let item of items) {
+                    item.target = "_blank";
+                    if (result = cache.top.find(top => top.link == item.href)) {
+                        let [writer, code] = result.info;
+                        if (banCodes.includes(code)) {
+                            hide(item, writer, code, "top");
+                        }
+                    }
+                    else {
+                        // console.log("FETCH", tr);
+                        bestPromises.push(new Promise(resolve => {
+                            getNameCode(item.href, item)    //item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음
+                            .then(([writer, code, item]) => {
+                                if (banCodes.includes(code)) {
+                                    hide(item, writer, code, "top");
+                                }
+                                cache.top.pop();
+                                cache.top.unshift({
+                                    "link": item.href,
+                                    "info": [writer, code],
+                                    "title": item.textContent.trim()
+                                });
+                                resolve();
+                            });
+                        }));
+                        await sleep(1000);
+                    }
+                }
+            }
+    
+            Promise.all(bestPromises).then(() => {
+                bestPromises.length = 0;
+                chrome.storage.local.set({"cache": cache}, ()=>{});
+            });
         });
-    });
+    }
 
-    page = (new URL(url)).searchParams.get("page");
-    if (page) {
-        page = parseInt(page);
-        shortcut["a"] = url.replace(`page=${page}`, `page=${(page>1)? page-1 : 1}`);
-        shortcut["s"] = url.replace(`page=${page}`, `page=${page+1}`);
-    }
-    else {
-        page = 1;
-        if (location.search.includes("?")) {
-            shortcut["s"] = `${url}&page=${page+1}`;
-        }
-        else {
-            shortcut["s"] = `${url}?page=${page+1}`;
-        }
-    }
+    let page = parseInt(url.searchParams.get("page")) || 1;
+
+    let navURL = new URL(url);
+    navURL.searchParams.set("page", (page > 1)? page - 1 : 1);
+    shortcut["a"] = {"url": navURL.href};
+
+    navURL = new URL(url);
+    navURL.searchParams.set("page", page + 1);
+    shortcut["s"] = {"url": navURL.href};
     // for (let i=0; i<trs.length; i++) {
     //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
     // }
@@ -423,8 +419,8 @@ function ruliweb() {
 }
 
 function dogdrip() {
-    shortcut["f"] = "/";
-    if (url == "https://www.dogdrip.net/" || url == "https://www.dogdrip.net") {
+    shortcut["f"] = {"url": "/"};
+    if (url.pathname == "/") {
         let main = document.querySelectorAll("div.eq.section.secontent.background-color-content > div.xe-widget-wrapper");
         main[0].hidden = true;
         main[8].hidden = true;
@@ -446,21 +442,21 @@ function dogdrip() {
             document.querySelectorAll("ul.eq.widget.widget-normal > li").forEach((li, i) => {
                 let a = li.querySelector("a");
                 a.target = "_blank";
-                if (i<22) {
+                if (i < 22) {
                     let small = document.createElement("span");
                     small.textContent = `[${i+1}] `;
                     small.style.fontSize = "small";
                     small.style.color = "#fff";
                     let div = li.querySelector("div.eq.width-expand");
                     div.prepend(small);
-                    if (i<20) {
+                    if (i < 20) {
                         shortcut[i] = a.href;
                     }
-                    else if (i==20) {
-                        shortcut["-"] = a.href;
+                    else if (i == 20) {
+                        shortcut["-"] = {"url": a.href, "target": "_blank"};
                     }
-                    else if (i==21) {
-                        shortcut["="] = a.href;
+                    else if (i == 21) {
+                        shortcut["="] = {"url": a.href, "target": "_blank"};
                     }
                 }
             });
@@ -473,7 +469,7 @@ function dogdrip() {
 }
 
 function namu() {
-    url = document.URL;
+    url = new URL(document.URL);
     let xpath = "//h5[text() = '최근 변경']/..";
     // let div = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
     document.querySelectorAll("aside > div").forEach(div => {
@@ -481,7 +477,8 @@ function namu() {
             div.style.display = "none";
         }
     });
-    if (url.includes("namu.wiki/history/")) {
+
+    if (url.pathname.startsWith("/history")) {
         xpath = "//a[text() = '비교']/../../..";
         let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
         ul?.querySelectorAll("li").forEach(li => {
@@ -494,18 +491,18 @@ function namu() {
             }
         });
     }
-    else if (url.includes("starred_documents")) {
+    else if (url.pathname == "/member/starred_documents") {
         xpath = "//li[contains(text(), '수정시각')]/..";
         let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
         ul?.querySelectorAll("li > a").forEach(a => {
-            a.href = a.href.replace("/w","/history");
+            a.href = a.href.replace("/w/","/history/");
             a.target = "_blank";
         });
     }
-    else if (url.includes("namu.wiki/edit/")) {
+    else if (url.pathname.startsWith("/edit")) {
         let check = document.querySelector("input[type='checkbox']");
         if (!check?.checked) {
-            check.click();
+            check?.click();
         }
     }
     else {
@@ -517,6 +514,77 @@ function namu() {
         //     }
         // }
     }
+}
+
+function dcinside() {
+    let page = parseInt(url.searchParams.get("page")) || 1;
+    let gall = url.searchParams.get("id");
+    let mode = new URLPattern({pathname: "*/board/:mode{/}?"}).exec(url).pathname.groups["mode"];
+
+    ["a","s","f","g","w","e","delete"].forEach(key => {
+        let navURL = new URL(url);
+        switch (key) {
+            case "a":
+                navURL.searchParams.set("page", (page > 1)? page - 1 : 1);
+                break;
+            case "s":
+                navURL.searchParams.set("page", page + 1);
+                break;
+            case "f":
+                navURL.pathname = navURL.pathname.replace(mode, "lists");
+                navURL.search = `?${new URLSearchParams({"id": gall})}`;
+                break;
+            case "g":
+                navURL.pathname = navURL.pathname.replace(mode, "lists");
+                navURL.search = `?${new URLSearchParams({"id": gall, "exception_mode": "recommend"})}`;
+                break;
+            case "w":
+                navURL.pathname = navURL.pathname.replace(mode, "write");
+                break;
+            case "e":
+                navURL.pathname = navURL.pathname.replace(mode, "modify");
+                break;
+            case "delete":
+                navURL.pathname = navURL.pathname.replace(mode, "delete");
+                break;
+        }
+        shortcut[key] = {"url": navURL.href};
+    });
+    shortcut["c"] = () => {document.querySelector('.cmt_textarea_label')?.click();};
+    shortcut["d"] = () => {
+        document.querySelector('.btn_cmt_refresh')?.click();
+        document.querySelectorAll(".dory")?.forEach(dory => {dory.remove();});
+    };
+    shortcut["q"] = () => {window.scrollTo(0, 0);};
+
+    let trs = document.querySelectorAll(".gall_list tbody tr");
+    let i = 0;
+    trs.forEach(tr => {
+        let subject = tr.querySelector("td.gall_subject");
+        let a = tr.querySelector("td.gall_tit > a");
+        
+        a.target = "_blank";
+        if (a2 = a.nextElementSibling) {
+            a2.target = "_blank";
+        }
+
+        bold = subject?.querySelector("b");
+        if (!isNaN(tr.querySelector("td").textContent) && !bold) {
+            if (i < 20) {
+                tr.querySelector("td").textContent += ` [${i+1}]`;
+                shortcut[i] = a.href;
+                i += 1;
+            }
+        }
+    });
+
+    if (document.querySelector(".gall_list")) {
+        document.querySelector(".gall_list col").style.width = "5.7em";
+    }
+    if (document.querySelector(".crt_icon")) {
+        document.querySelector(".crt_icon").style.display = "inline-block";
+    }
+    document.querySelectorAll(".dory").forEach(dory => {dory.remove();});
 }
 
 function hide(elem, writer, code, board) {
