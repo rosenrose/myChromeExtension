@@ -25,13 +25,18 @@ chrome.runtime.onInstalled.addListener(() => {
 // }
 
 chrome.contextMenus.create({
-    id: "myExt",
+    id: "ruliweb",
     title: "차단",
+    contexts: ["link"]
+});
+chrome.contextMenus.create({
+    id: "imagePaste",
+    title: "이미지 붙여넣기",
     contexts: ["all"]
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    chrome.tabs.sendMessage(tab.id, {url: info.pageUrl, cmd: "myExt"});
+    chrome.tabs.sendMessage(tab.id, {id: info.menuItemId, url: info.pageUrl, cmd: "myExt"});
 });
 
 // chrome.storage.local.get("replace", data => {

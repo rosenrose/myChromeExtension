@@ -59,15 +59,41 @@ document.addEventListener("keydown", event => {
         window.history.back();
     }
 });
+
 document.addEventListener("keyup", event => {
     if (event.key == "Alt" && alt.size) {
         alt.forEach(a => {window.open(a, "_blank");});
         alt.clear();
     }
 })
+
 document.addEventListener("contextmenu", event => {
-    // console.log(event.target);
+    console.log(event.target);
     contextMenuElement = event.target;
+});
+
+chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
+    if (req.url !== location.href || req.cmd !== "myExt" || req.id !== "imagePaste") return;
+
+    let input;
+    if (contextMenuElement.matches("input[type='file']")) {
+        input = contextMenuElement;
+    }
+    else {
+        input = document.querySelector(prompt("query?", "input[type='file']"));
+    }
+    console.log(input);
+
+    navigator.clipboard.read()
+    .then(data => {
+        data[0].getType("image/png")
+        .then(blob => {
+            let datatransfer = new DataTransfer();
+            datatransfer.items.add(new File([blob], "image.png", {type: blob.type}));
+            input.files = datatransfer.files;
+            input.dispatchEvent(new InputEvent("change"), {bubbles: true});
+        })
+    })
 });
 
 chrome.storage.local.get("replace", data => {
@@ -287,7 +313,6 @@ function ruliweb() {
             cache = data.cache;
             let banCodes = banList.user.map(user => user.code);
             let banWords = banList.word;
-            let bestPromises = [];
 
             let i = 0;
             for (let tr of trs) {
@@ -319,6 +344,7 @@ function ruliweb() {
                         "info": [writer, code],
                         "title": title.textContent.trim()
                     });
+                    chrome.storage.local.set({"cache": cache}, ()=>{});
                     await sleep(500);
                 }
 
@@ -338,7 +364,6 @@ function ruliweb() {
                     i += 1;
                 }
             }
-            chrome.storage.local.set({"cache": cache}, ()=>{});
 
             let best = document.querySelector("div.list.best_date.active");
             if (best) {
@@ -353,30 +378,23 @@ function ruliweb() {
                     }
                     else {
                         // console.log("FETCH", tr);
-                        bestPromises.push(new Promise(resolve => {
-                            getNameCode(item.href, item)    //item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음
-                            .then(([writer, code, item]) => {
-                                if (banCodes.includes(code)) {
-                                    hide(item, writer, code, "top");
-                                }
-                                cache.top.pop();
-                                cache.top.unshift({
-                                    "link": item.href,
-                                    "info": [writer, code],
-                                    "title": item.textContent.trim()
-                                });
-                                resolve();
+                        getNameCode(item.href, item)    //item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
+                        .then(([writer, code, item]) => {
+                            if (banCodes.includes(code)) {
+                                hide(item, writer, code, "top");
+                            }
+                            cache.top.pop();
+                            cache.top.unshift({
+                                "link": item.href,
+                                "info": [writer, code],
+                                "title": item.textContent.trim()
                             });
-                        }));
+                            chrome.storage.local.set({"cache": cache}, ()=>{});
+                        });
                         await sleep(1000);
                     }
                 }
             }
-
-            Promise.all(bestPromises).then(() => {
-                bestPromises.length = 0;
-                chrome.storage.local.set({"cache": cache}, ()=>{});
-            });
         });
     }
 
@@ -394,27 +412,30 @@ function ruliweb() {
     // }
 
     chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
-        if (req.url!==location.href || req.cmd!=="myExt") return;
-        let link = contextMenuElement.closest("div.text_wrapper").querySelector("a").href;
-        getNameCode(link)
-        .then(([writer, code]) => {
-            console.log([writer, code]);
-            if (writer && code) {
-                let idx = banList.user.findIndex(user => user.code == code);
-                console.log(banList);
-                if (confirm([writer, code])) {
-                    if (idx > -1) {
-                        console.log([banList.user[idx].name, writer, code]);
-                        banList.user[idx].name.unshift(writer);
+        if (req.url !== location.href || req.cmd !== "myExt" || req.id !== "ruliweb") return;
+
+        let link = contextMenuElement.closest("div.text_wrapper")?.querySelector("a").href;
+        if (link) {
+            getNameCode(link)
+            .then(([writer, code]) => {
+                console.log([writer, code]);
+                if (writer && code) {
+                    let idx = banList.user.findIndex(user => user.code == code);
+                    console.log(banList);
+                    if (confirm([writer, code])) {
+                        if (idx > -1) {
+                            console.log([banList.user[idx].name, writer, code]);
+                            banList.user[idx].name.unshift(writer);
+                        }
+                        else {
+                            banList.user.push({name: [writer], code: code});
+                        }
+                        banList.user.sort((a,b) => (a.name[0] > b.name[0])? 1 : -1);
+                        chrome.storage.local.set({"banList": banList}, ()=>{console.log(banList); window.location.reload();});
                     }
-                    else {
-                        banList.user.push({name: [writer], code: code});
-                    }
-                    banList.user.sort((a,b) => (a.name[0] > b.name[0])? 1 : -1);
-                    chrome.storage.local.set({"banList": banList}, ()=>{console.log(banList); window.location.reload();});
                 }
-            }
-        });
+            });
+        }
     });
 }
 
@@ -558,13 +579,19 @@ function dcinside() {
                 navURL.pathname = navURL.pathname.replace(mode, "write");
                 break;
             case "e":
-                navURL.pathname = navURL.pathname.replace(mode, "modify");
+                if (["view","delete"].includes(mode)) {
+                    navURL.pathname = navURL.pathname.replace(mode, "modify");
+                }
                 break;
-            case "delete":
-                navURL.pathname = navURL.pathname.replace(mode, "delete");
+                case "delete":
+                if (["view","modify"].includes(mode)) {
+                    navURL.pathname = navURL.pathname.replace(mode, "delete");
+                }
                 break;
         }
-        shortcut[key] = {"url": navURL.href};
+        // if (url.href != navURL.href) {
+            shortcut[key] = {"url": navURL.href};
+        // }
     });
     shortcut["c"] = () => {document.querySelector('.cmt_textarea_label')?.click();};
     shortcut["d"] = () => {
