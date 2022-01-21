@@ -307,95 +307,9 @@ function ruliweb() {
         }
     }
     else {
-        let trs = document.querySelectorAll("tr.table_body");
-        chrome.storage.local.get(["banList", "cache"], async (data) => {
-            banList = data.banList;
-            cache = data.cache;
-            let banCodes = banList.user.map(user => user.code);
-            let banWords = banList.word;
-
-            let i = 0;
-            for (let tr of trs) {
-                let writer = tr.querySelector("a.nick").textContent.trim();
-                let title = tr.querySelector("a.title_wrapper");
-                tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
-                title.target = "_blank";
-                if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
-                    tr.hidden = true;
-                    console.log(title, title.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
-                    // title.innerHTML+=`${head}←(병신)${tail}`;
-                }
-
-                if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
-                    let [writer, code] = result.info;
-                    if (banCodes.includes(code)) {
-                        hide(tr, writer, code, "main");
-                    }
-                }
-                else {
-                    // console.log("FETCH", tr);
-                    let [writer, code] = await getNameCode(title.href);
-                    if (banCodes.includes(code)) {
-                        hide(tr, writer, code, "main");
-                    }
-                    cache.main.pop();
-                    cache.main.unshift({
-                        "link": title.href.split("?")[0],
-                        "info": [writer, code],
-                        "title": title.textContent.trim()
-                    });
-                    chrome.storage.local.set({"cache": cache}, ()=>{});
-                    await sleep(1000);
-                }
-                
-                if (!tr.hidden) {
-                    let a = tr.querySelector("div.text_wrapper a");
-                    let small = document.createElement("span");
-                    if (i < 20) {
-                        small.textContent = `[${i + 1}] `;
-                        shortcut[i] = a.href;
-                    }
-                    else {
-                        small.textContent = `[${numMap[i].toUpperCase()}] `;
-                        shortcut[numMap[i]] = {"url": a.href, "target": "_blank"};
-                    }
-                    small.style.fontSize = "small";
-                    a.prepend(small);
-                    i += 1;
-                }
-            }
-
-            let best = document.querySelector("div.list.best_date.active");
-            if (best) {
-                let items = best.querySelectorAll("a.deco");
-                for (let item of items) {
-                    item.target = "_blank";
-                    if (result = cache.top.find(top => top.link == item.href)) {
-                        let [writer, code] = result.info;
-                        if (banCodes.includes(code)) {
-                            hide(item, writer, code, "top");
-                        }
-                    }
-                    else {
-                        // console.log("FETCH", tr);
-                        getNameCode(item.href, item)    //item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
-                        .then(([writer, code, item]) => {
-                            if (banCodes.includes(code)) {
-                                hide(item, writer, code, "top");
-                            }
-                            cache.top.pop();
-                            cache.top.unshift({
-                                "link": item.href,
-                                "info": [writer, code],
-                                "title": item.textContent.trim()
-                            });
-                            chrome.storage.local.set({"cache": cache}, ()=>{});
-                        });
-                        await sleep(3000);
-                    }
-                }
-            }
-        });
+        addNum(0, 0, "main");
+        shortcut["z"] = () => addNum(0, 0, "top");
+        shortcut["x"] = () => addNum(0, 0, "main");
     }
 
     let page = parseInt(url.searchParams.get("page")) || 1;
@@ -407,9 +321,7 @@ function ruliweb() {
     navURL = new URL(url);
     navURL.searchParams.set("page", page + 1);
     shortcut["s"] = {"url": navURL.href};
-    // for (let i=0; i<trs.length; i++) {
-    //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
-    // }
+    
 
     chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         if (req.url !== location.href || req.cmd !== "myExt" || req.id !== "ruliweb") return;
@@ -437,6 +349,9 @@ function ruliweb() {
             });
         }
     });
+    // for (let i=0; i<trs.length; i++) {
+    //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
+    // }
 }
 
 function dogdrip() {
@@ -468,9 +383,6 @@ function dogdrip() {
             shortcut["z"] = () => addNum(startNum = Math.max(startNum - capicity, 0), capicity);
             shortcut["x"] = () => addNum(startNum = Math.min(startNum + capicity, capicity * 3), capicity);
         });
-        // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
-        //     appendTooltip(li.querySelector("a"));
-        // }
     }
     else if (!new URLPattern({pathname: "/(\\d+)"}).test(url)) {
         document.querySelectorAll("tbody tr:not(.notice)")?.forEach((tr, i) => {
@@ -486,6 +398,9 @@ function dogdrip() {
             }
         });
     }
+    // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
+    //     appendTooltip(li.querySelector("a"));
+    // }
 }
 
 function namu() {
@@ -597,7 +512,7 @@ function dcinside() {
     document.querySelectorAll(".dory").forEach(dory => {dory.remove();});
 }
 
-function addNum(start, capicity) {
+function addNum(start, capicity, select) {
     switch (domain) {
         case "dcinside.com":
             let i = 0;
@@ -645,6 +560,120 @@ function addNum(start, capicity) {
                     else {
                         small.textContent = `[${numMap[i - start].toUpperCase()}] `;
                         shortcut[numMap[i - start]] = {"url": a.href, "target": "_blank"};
+                    }
+                }
+            });
+            break;
+        case "bbs.ruliweb.com":
+            chrome.storage.local.get(["banList", "cache"], async (data) => {
+                banList = data.banList;
+                cache = data.cache;
+                let banCodes = banList.user.map(user => user.code);
+                let banWords = banList.word;
+                
+                let i = 0;
+                for (let tr of document.querySelectorAll("tr.table_body:not([hidden])")) {
+
+                    let writer = tr.querySelector("a.nick").textContent.trim();
+                    let title = tr.querySelector("a.title_wrapper");
+                    tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
+                    title.target = "_blank";
+                    if (banWords.some(word => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
+                        tr.hidden = true;
+                        console.log(title, title.firstChild.textContent.trim()+"\n"+writer.slice(0,2));
+                        // title.innerHTML+=`${head}←(병신)${tail}`;
+                    }
+    
+                    if (result = cache.main.find(main => main.link == title.href.split("?")[0])) {
+                        let [writer, code] = result.info;
+                        if (banCodes.includes(code)) {
+                            hide(tr, writer, code, "main");
+                        }
+                    }
+                    else {
+                        // console.log("FETCH", tr);
+                        let [writer, code] = await getNameCode(title.href);
+                        if (banCodes.includes(code)) {
+                            hide(tr, writer, code, "main");
+                        }
+                        cache.main.pop();
+                        cache.main.unshift({
+                            "link": title.href.split("?")[0],
+                            "info": [writer, code],
+                            "title": title.textContent.trim()
+                        });
+                        chrome.storage.local.set({"cache": cache}, ()=>{});
+                        await sleep(1000);
+                    }
+                    
+                    if (!tr.hidden) {
+                        let a = tr.querySelector("div.text_wrapper a");
+                        if (select == "main") {
+                            let small = document.createElement("span");
+                            small.className = "mySmall";
+                            if (i < 20) {
+                                small.textContent = `[${i + 1}] `;
+                                shortcut[i] = a.href;
+                            }
+                            else {
+                                small.textContent = `[${numMap[i].toUpperCase()}] `;
+                                shortcut[numMap[i]] = {"url": a.href, "target": "_blank"};
+                            }
+                            small.style.fontSize = "small";
+                            a.prepend(small);
+                            i += 1;
+                        }
+                        else {
+                            a.querySelector("span.mySmall")?.remove();
+                        }
+                    }
+                }
+    
+                let best = document.querySelector("div.list.best_date.active");
+                if (best) {
+                    i = 0;
+                    for (let item of best.querySelectorAll("a.deco")) {
+                        if (item.textContent == "()") continue;
+
+                        item.target = "_blank";
+                        if (result = cache.top.find(top => top.link == item.href)) {
+                            let [writer, code] = result.info;
+                            if (banCodes.includes(code)) {
+                                hide(item, writer, code, "top");
+                            }
+                        }
+                        else {
+                            // console.log("FETCH", tr);
+                            getNameCode(item.href, item)    //item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
+                            .then(([writer, code, item]) => {
+                                if (banCodes.includes(code)) {
+                                    hide(item, writer, code, "top");
+                                }
+                                cache.top.pop();
+                                cache.top.unshift({
+                                    "link": item.href,
+                                    "info": [writer, code],
+                                    "title": item.textContent.trim()
+                                });
+                                chrome.storage.local.set({"cache": cache}, ()=>{});
+                            });
+                            await sleep(3000);
+                        }
+
+                        if (select == "top") {
+                            if (i < 20) {
+                                item.textContent = `[${i + 1}] ${item.textContent}`;
+                                shortcut[i] = item.href;
+                            }
+                            else {
+                                item.textContent = `[${numMap[i]}] ${item.textContent}`;
+                                shortcut[numMap[i]] = {"url": item.href, "target": "_blank"};
+                            }
+                        }
+                        else {
+                            item.textContent = item.textContent.slice(item.textContent.indexOf(" ") + 1);
+                        }
+                        i += 1;
                     }
                 }
             });
