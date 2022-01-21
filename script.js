@@ -345,14 +345,14 @@ function ruliweb() {
                         "title": title.textContent.trim()
                     });
                     chrome.storage.local.set({"cache": cache}, ()=>{});
-                    await sleep(500);
+                    await sleep(1000);
                 }
-
+                
                 if (!tr.hidden) {
                     let a = tr.querySelector("div.text_wrapper a");
                     let small = document.createElement("span");
                     if (i < 20) {
-                        small.textContent = `[${i+1}] `;
+                        small.textContent = `[${i + 1}] `;
                         shortcut[i] = a.href;
                     }
                     else {
@@ -391,7 +391,7 @@ function ruliweb() {
                             });
                             chrome.storage.local.set({"cache": cache}, ()=>{});
                         });
-                        await sleep(1000);
+                        await sleep(3000);
                     }
                 }
             }
@@ -463,27 +463,10 @@ function dogdrip() {
                 }
             });
 
-            document.querySelectorAll("ul.eq.widget.widget-normal > li").forEach((li, i) => {
-                let a = li.querySelector("a");
-                a.target = "_blank";
-                if (i < 22) {
-                    let small = document.createElement("span");
-                    small.textContent = `[${i+1}] `;
-                    small.style.fontSize = "small";
-                    small.style.color = "#fff";
-                    let div = li.querySelector("div.eq.width-expand");
-                    div.prepend(small);
-                    if (i < 20) {
-                        shortcut[i] = a.href;
-                    }
-                    else if (i == 20) {
-                        shortcut["-"] = {"url": a.href, "target": "_blank"};
-                    }
-                    else if (i == 21) {
-                        shortcut["="] = {"url": a.href, "target": "_blank"};
-                    }
-                }
-            });
+            const capicity = 30;
+            addNum(startNum = 0, capicity);
+            shortcut["z"] = () => addNum(startNum = Math.max(startNum - capicity, 0), capicity);
+            shortcut["x"] = () => addNum(startNum = Math.min(startNum + capicity, capicity * 3), capicity);
         });
         // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
         //     appendTooltip(li.querySelector("a"));
@@ -600,26 +583,10 @@ function dcinside() {
     };
     shortcut["q"] = () => {window.scrollTo(0, 0);};
 
-    let trs = document.querySelectorAll(".gall_list tbody tr");
-    let i = 0;
-    trs.forEach(tr => {
-        let subject = tr.querySelector("td.gall_subject");
-        let a = tr.querySelector("td.gall_tit > a");
-
-        a.target = "_blank";
-        if (a2 = a.nextElementSibling) {
-            a2.target = "_blank";
-        }
-
-        bold = subject?.querySelector("b");
-        if (!isNaN(tr.querySelector("td").textContent) && !bold) {
-            if (i < 20) {
-                tr.querySelector("td").textContent += ` [${i+1}]`;
-                shortcut[i] = a.href;
-                i += 1;
-            }
-        }
-    });
+    const capicity = 20;
+    addNum(startNum = 0, capicity);
+    shortcut["z"] = () => addNum(startNum = Math.max(startNum - capicity, 0), capicity);
+    shortcut["x"] = () => addNum(startNum = Math.min(startNum + capicity, capicity * 2), capicity);
 
     if (document.querySelector(".gall_list")) {
         document.querySelector(".gall_list col").style.width = "5.7em";
@@ -628,6 +595,61 @@ function dcinside() {
         document.querySelector(".crt_icon").style.display = "inline-block";
     }
     document.querySelectorAll(".dory").forEach(dory => {dory.remove();});
+}
+
+function addNum(start, capicity) {
+    switch (domain) {
+        case "dcinside.com":
+            let i = 0;
+            document.querySelectorAll(".gall_list tbody tr").forEach(tr => {
+                let subject = tr.querySelector("td.gall_subject");
+                let a = tr.querySelector("td.gall_tit > a");
+                tr.querySelector("span.mySmall")?.remove();
+        
+                a.target = "_blank";
+                if (a2 = a.nextElementSibling) {
+                    a2.target = "_blank";
+                }
+        
+                bold = subject?.querySelector("b");
+                if (!isNaN(tr.querySelector("td").textContent) && !bold) {
+                    if ((start <= i) && (i < start + capicity)) {
+                        // tr.querySelector("td").textContent += ` [${i+1}]`;
+                        let small  = document.createElement("span");
+                        small.className = "mySmall";
+                        small.textContent = ` [${(i - start) + 1}]`;
+                        tr.querySelector("td").append(small);
+                        shortcut[i - start] = a.href;
+                    }
+                    i += 1;
+                }
+            });
+            break;
+        case "www.dogdrip.net":
+            document.querySelectorAll("ul.eq.widget.widget-normal > li").forEach((li, i) => {
+                li.querySelector("span.mySmall")?.remove();
+                let a = li.querySelector("a");
+                a.target = "_blank";
+
+                if ((start <= i) && (i < start + capicity)) {
+                    let small = document.createElement("span");
+                    small.className = "mySmall";
+                    small.style.fontSize = "small";
+                    small.style.color = "#fff";
+                    li.querySelector("div.eq.width-expand").prepend(small);
+
+                    if ((i - start) < 20) {
+                        small.textContent = `[${(i - start) + 1}] `;
+                        shortcut[i - start] = a.href;
+                    }
+                    else {
+                        small.textContent = `[${numMap[i - start].toUpperCase()}] `;
+                        shortcut[numMap[i - start]] = {"url": a.href, "target": "_blank"};
+                    }
+                }
+            });
+            break;
+    }
 }
 
 function hide(elem, writer, code, board) {
