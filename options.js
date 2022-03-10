@@ -1,13 +1,21 @@
 banList = {};
 replaceList = [];
-chrome.storage.local.get((data) => {
-  chrome.storage.sync.get((data2) => {
-    console.log(data, data2);
+etc = {};
+
+chrome.storage.local.get((localData) => {
+  chrome.storage.sync.get((syncData) => {
+    console.log(localData, syncData);
+
+    etc = syncData.etc;
+    document.querySelectorAll("#etc input").forEach((input) => {
+      input.checked = etc[input.value];
+    });
   });
   // let textarea = document.querySelector("textarea");
   // textarea.style.height = "7200vh";
   // textarea.value = JSON.stringify(data, null, 2);
 });
+
 chrome.storage.local.get("banList", (data) => {
   banList = data.banList;
   let userList = document.querySelector("#userList ol");
@@ -19,6 +27,7 @@ chrome.storage.local.get("banList", (data) => {
     appendWord(wordList, word);
   }
 });
+
 fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
   .then((response) => response.text())
   .then((content) => {
@@ -245,8 +254,8 @@ fetch("https://www.dogdrip.net/")
         td[i].textContent = boardList[i];
       } else if (i < boardList.length) {
         let template = document.querySelector("#checkboxTemplate").content.cloneNode(true);
-
         let input = template.querySelector("input");
+
         input.value = boardList[i];
         input.nextSibling.textContent = boardList[i];
         input.addEventListener("change", (event) => {
@@ -280,7 +289,7 @@ fetch("https://www.dogdrip.net/")
   });
 
 function updateTable() {
-  let checkboxes = document.querySelectorAll("input[type='checkbox']");
+  let checkboxes = document.querySelectorAll("#dogdrip input");
   for (let checkbox of checkboxes) {
     checkbox.checked = userBoardList.includes(checkbox.value);
   }
@@ -339,6 +348,11 @@ function updateTable() {
 document.querySelector("#resetButton").addEventListener("click", () => {
   chrome.storage.sync.set({ userBoardList: boardList }, () => {});
   window.location.reload();
+});
+
+document.querySelector("#etc").addEventListener("change", (event) => {
+  etc[event.target.value] = event.target.checked;
+  chrome.storage.sync.set({ etc: etc }, () => {});
 });
 
 function save() {

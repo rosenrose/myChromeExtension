@@ -363,17 +363,19 @@ function dogdrip() {
     let boardList = [...document.querySelectorAll("div.eq.overflow-hidden")].slice(2);
     let boardMap = Object.fromEntries(boardList.map((board) => [board.querySelector("a").textContent.trim(), board]));
 
-    chrome.storage.sync.get("userBoardList", (data) => {
-      boardList
-        .map((board) => board.parentNode)
-        .forEach((parent, i) => {
-          let board = parent.querySelector("div.eq.overflow-hidden");
-          if (i < data.userBoardList.length) {
-            swap(board, boardMap[data.userBoardList[i]]);
-          } else {
-            board.remove();
-          }
-        });
+    chrome.storage.sync.get(["userBoardList", "etc"], (data) => {
+      if (data.etc.isBoard) {
+        boardList
+          .map((board) => board.parentNode)
+          .forEach((parent, i) => {
+            let board = parent.querySelector("div.eq.overflow-hidden");
+            if (i < data.userBoardList.length) {
+              swap(board, boardMap[data.userBoardList[i]]);
+            } else {
+              board.remove();
+            }
+          });
+      }
 
       const capicity = 30;
       addNum((startNum = 0), capicity);
@@ -568,9 +570,13 @@ function addNum(start, capicity, select) {
       });
       break;
     case "bbs.ruliweb.com":
-      chrome.storage.local.get(["banList", "cache"], async (data) => {
+      chrome.storage.local.get(["banList", "cache", "etc"], async (data) => {
         banList = data.banList;
         cache = data.cache;
+        syncData = await new Promise((resolve) => {
+          chrome.storage.sync.get("etc", resolve);
+        });
+        etc = syncData.etc;
         let banCodes = banList.user.map((user) => user.code);
         let banWords = banList.word;
 
@@ -578,7 +584,7 @@ function addNum(start, capicity, select) {
         for (let tr of document.querySelectorAll("tr.table_body:not([hidden])")) {
           let writer = tr.querySelector("a.nick").textContent.trim();
           let title = tr.querySelector("a.title_wrapper");
-          let dislike_value;
+          let dislike_value = "";
 
           tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
           title.target = "_blank";
@@ -602,21 +608,23 @@ function addNum(start, capicity, select) {
             hide(tr, writer, result.code, "main");
           } else {
             // console.log("FETCH", tr);
-            await sleep(randomInt(1450, 1600));
-            let [writer, code, dislike] = await getNameCode(title.href);
-            dislike_value = dislike;
+            if (etc.isFetch) {
+              await sleep(randomInt(1450, 1600));
+              let [writer, code, dislike] = await getNameCode(title.href);
+              dislike_value = dislike;
 
-            if (banCodes.includes(code)) {
-              hide(tr, writer, code, "main");
+              if (banCodes.includes(code)) {
+                hide(tr, writer, code, "main");
+              }
+              cache.main.unshift({
+                link: title.href.split("?")[0],
+                info: [writer, code],
+                title: title.textContent.trim(),
+                dislike: dislike,
+              });
+              cache.main.pop();
+              chrome.storage.local.set({ cache: cache }, () => {});
             }
-            cache.main.unshift({
-              link: title.href.split("?")[0],
-              info: [writer, code],
-              title: title.textContent.trim(),
-              dislike: dislike,
-            });
-            cache.main.pop();
-            chrome.storage.local.set({ cache: cache }, () => {});
           }
 
           if (tr.hidden) continue;
@@ -665,18 +673,20 @@ function addNum(start, capicity, select) {
             } else {
               // console.log("FETCH", tr);
               //getNameCode(item.href, item)//item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
-              await sleep(randomInt(3500, 4500));
-              let [writer, code] = await getNameCode(item.href);
-              if (banCodes.includes(code)) {
-                hide(item, writer, code, "top");
+              if (etc.isFetch) {
+                await sleep(randomInt(3500, 4500));
+                let [writer, code] = await getNameCode(item.href);
+                if (banCodes.includes(code)) {
+                  hide(item, writer, code, "top");
+                }
+                cache.top.unshift({
+                  link: item.href,
+                  info: [writer, code],
+                  title: item.textContent.trim(),
+                });
+                cache.top.pop();
+                chrome.storage.local.set({ cache: cache }, () => {});
               }
-              cache.top.unshift({
-                link: item.href,
-                info: [writer, code],
-                title: item.textContent.trim(),
-              });
-              cache.top.pop();
-              chrome.storage.local.set({ cache: cache }, () => {});
             }
 
             if (item.textContent == "()") continue;
