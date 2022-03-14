@@ -363,14 +363,15 @@ function save() {
 }
 
 function backup() {
-  chrome.storage.local.get((data) => {
-    chrome.storage.sync.get((data2) => {
-      json = JSON.stringify([data, data2], null, 2);
+  chrome.storage.local.get((localData) => {
+    chrome.storage.sync.get((syncData) => {
+      json = JSON.stringify([localData.banList, syncData.userBoardList]);
       blob = new Blob([json]);
       saveAs(URL.createObjectURL(blob), "backup.json");
     });
   });
 }
+document.querySelector("#backupButton").addEventListener("click", backup);
 
 function replaceSort() {
   let regex = /[\d가-힣ㄱ-ㅎ]/;
