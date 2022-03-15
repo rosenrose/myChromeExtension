@@ -56,29 +56,14 @@
       #userList span.code {
         width: 50px;
       }
+      #userList input.memo {
+        width: 100px;
+      }
       #banWord {
-        width: 400px;
+        width: 300px;
       }
       #wordList span.name {
-        width: 180px;
-      }
-      #replaceWord > input {
-        width: 130px;
-        margin: 1px;
-      }
-      #replaceList li {
-        font-size: 16px;
-        width: 400px;
-      }
-      #replaceList input.original,
-      input.replace {
-        font-size: 15px;
-      }
-      #replaceList input.original {
-        width: 180px;
-      }
-      #replaceList input.replace {
-        width: 120px;
+        width: 250px;
       }
     </style>
   </head>
@@ -103,13 +88,6 @@
         <input type="text" id="addWordInput" /><button type="button" id="addWord">add</button>
         <p></p>
         <button type="button" id="resetWord">reset</button>
-      </div>
-      <br />
-      <hr />
-      <div id="replaceWord">
-        <div id="replaceList">
-          <ul></ul>
-        </div>
       </div>
     </div>
     <div id="dogdrip">
@@ -194,6 +172,7 @@
     <li id="">
       <span class="name"></span>
       <span class="code"></span>
+      <input type="text" class="memo" />
       <button type="button" class="delUser">del</button>
     </li>
   </template>

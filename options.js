@@ -1,5 +1,4 @@
 banList = {};
-replaceList = [];
 etc = {};
 
 chrome.storage.local.get((localData) => {
@@ -33,14 +32,7 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
   .then((content) => {
     let doc = new DOMParser().parseFromString(content, "text/html");
     let list = JSON.parse([...doc.querySelectorAll("tr > td:nth-child(2)")].map((i) => i.textContent).join("\n"));
-    chrome.storage.local.set({ replace: list }, () => {
-      chrome.storage.local.get("replace", (data) => {
-        let replaceLi = document.querySelector("#replaceList ul");
-        for (let replace of data.replace["replaceList"]) {
-          appendReplace(replaceLi, replace[0], replace[1]);
-        }
-      });
-    });
+    chrome.storage.local.set({ replace: list }, () => {});
     document.querySelector("pre").textContent = doc
       .querySelector("tbody")
       .textContent.trim()
@@ -53,13 +45,20 @@ function appendUser(userList, user) {
 
   let li = template.firstElementChild;
   li.id = `code-${user.code}`;
-  let nick = template.querySelector("span");
+  let nick = template.querySelector(".name");
   for (let name of user.name) {
     nick.append(name, document.createElement("br"));
   }
-  template.querySelector("span + span").textContent = user.code;
+  template.querySelector(".code").textContent = user.code;
+  template.querySelector(".memo").value = user?.memo;
+  template.querySelector(".memo").addEventListener("change", (event) => {
+    let code = event.target.parentNode.querySelector(".code").textContent;
+    let idx = banList.user.findIndex((user) => user.code == code);
+    banList.user[idx].memo = event.target.value.trim();
+    save();
+  });
   template.querySelector("button").addEventListener("click", (event) => {
-    let code = event.target.previousElementSibling.textContent;
+    let code = event.target.parentNode.querySelector(".code").textContent;
     let idx = banList.user.findIndex((user) => user.code == code);
     if (idx > -1) banList.user.splice(idx, 1);
     event.target.parentNode.remove();
@@ -80,69 +79,6 @@ function appendWord(wordList, word) {
     save();
   });
   wordList.append(template.firstElementChild);
-}
-
-function appendReplace(replaceLi, original, replace) {
-  let template = document.querySelector("#replaceTemplate").content.cloneNode(true);
-
-  let li = template.firstElementChild;
-  li.setAttribute("data-index", replaceLi.querySelectorAll("li").length);
-  li.addEventListener("dragstart", (event) => {
-    dragged = event.target;
-    event.target.style.opacity = 0.5;
-    event.target.style.backgroundColor = "rgb(56,138,255)";
-  });
-  li.addEventListener("dragend", (event) => {
-    event.target.removeAttribute("style");
-    dragged = null;
-    replaces = document.querySelectorAll("#replaceList li");
-    for (let i = 0; i < replaces.length; i++) {
-      replaces[i].setAttribute("data-index", i);
-      replaceList[i] = [replaces[i].querySelector(".original").value, replaces[i].querySelector(".replace").value];
-    }
-    // save();
-  });
-  li.addEventListener("dragover", (event) => {
-    event.preventDefault();
-  });
-  li.addEventListener("dragenter", (event) => {
-    if (dragged && dragged != event.target) {
-      if (dragged == event.target.nextElementSibling) {
-        //상승
-        event.target.before(dragged);
-      } else if (dragged == event.target.previousElementSibling) {
-        //하강
-        event.target.after(dragged);
-      }
-    }
-  });
-  li.addEventListener("drop", (event) => {
-    event.preventDefault();
-  });
-
-  let orig = template.querySelector("input");
-  orig.value = original;
-  orig.addEventListener("focus", (event) => {
-    event.target.setAttribute("oldValue", event.target.value);
-  });
-  orig.addEventListener("change", (event) => {
-    replaceList[event.target.parentNode.getAttribute("data-index")][0] = event.target.value;
-    //save();
-  });
-  let rep = template.querySelector("input + input");
-  rep.value = replace;
-  rep.addEventListener("change", (event) => {
-    replaceList[event.target.parentNode.getAttribute("data-index")][1] = event.target.value;
-    //save();
-  });
-
-  template.querySelector("button").addEventListener("click", (event) => {
-    replaceList.splice(event.target.parentNode.getAttribute("data-index"), 1);
-    event.target.parentNode.remove();
-    //save();
-  });
-
-  replaceLi.append(li);
 }
 
 document.querySelector("#addUser").addEventListener("click", () => {
@@ -372,11 +308,6 @@ function backup() {
   });
 }
 document.querySelector("#backupButton").addEventListener("click", backup);
-
-function replaceSort() {
-  let regex = /[\d가-힣ㄱ-ㅎ]/;
-  replaceList.sort((a, b) => (a[0].match(regex)[0] > b[0].match(regex)[0] ? 1 : -1));
-}
 
 function clearCache() {
   chrome.storage.local.get("cache", (data) => {

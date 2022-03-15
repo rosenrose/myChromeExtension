@@ -328,12 +328,16 @@ function ruliweb() {
         if (writer && code) {
           let idx = banList.user.findIndex((user) => user.code == code);
           console.log(banList);
-          if (confirm([writer, code])) {
+          if ((memo = prompt([writer, code]))) {
             if (idx > -1) {
               console.log([banList.user[idx].name, writer, code]);
               banList.user[idx].name.unshift(writer);
             } else {
-              banList.user.push({ name: [writer], code: code });
+              banList.user.push({
+                name: [writer],
+                code,
+                memo: memo.trim(),
+              });
             }
             banList.user.sort((a, b) => (a.name[0] > b.name[0] ? 1 : -1));
             chrome.storage.local.set({ banList: banList }, () => {
