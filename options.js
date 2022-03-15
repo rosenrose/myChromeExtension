@@ -238,35 +238,9 @@ fetch("https://www.dogdrip.net/")
         }
       }
       save();
-
-      let user = document.querySelector("#user");
-      for (let i = 0; i < userBoardList.length + 3; i++) {
-        let userDiv = document.createElement("div");
-
-        if (i < 1) {
-          userDiv.textContent = "\u00A0";
-        } else {
-          userDiv.className = "boardCell";
-          if (i < 2) {
-            userDiv.textContent = "앞에 밀어넣기";
-            userDiv.classList.add("etc");
-            userDiv.id = "unshift";
-          } else if (i < userBoardList.length + 2) {
-            userDiv.textContent = userBoardList[i - 2];
-          } else {
-            userDiv.textContent = "뒤에 밀어넣기";
-            userDiv.classList.add("etc");
-            userDiv.id = "push";
-          }
-        }
-        user.append(userDiv);
-      }
-      draggables = [...document.querySelectorAll("#user div")].slice(2, -1);
       updateTable();
 
-      draggables.forEach((draggable, i) => {
-        draggable.dataset.index = i;
-      });
+      let user = document.querySelector("#user");
 
       user.addEventListener("dragstart", (event) => {
         if (event.target.draggable) {
@@ -282,35 +256,31 @@ fetch("https://www.dogdrip.net/")
         event.preventDefault();
       });
       user.addEventListener("dragenter", (event) => {
-        if (dragged && event.target.matches(".boardCell")) {
+        if (dragged && event.target.draggable) {
           event.target.style.backgroundColor = lightBlue;
         }
       });
       user.addEventListener("dragleave", (event) => {
-        if (dragged && event.target.matches(".boardCell")) {
-          event.target.style.backgroundColor = event.target.draggable ? darkBlue : "";
+        if (dragged && event.target.draggable) {
+          event.target.style.backgroundColor = darkBlue;
         }
       });
       user.addEventListener("drop", (event) => {
         event.preventDefault();
-        if (dragged && event.target.matches(".boardCell")) {
-          event.target.style.backgroundColor = event.target.draggable ? darkBlue : "";
+        if (dragged && event.target.draggable) {
+          event.target.style.backgroundColor = darkBlue;
 
           if (dragged != event.target) {
             let draggedText = dragged.textContent;
             let targetText = event.target.textContent;
 
-            if (event.target.draggable) {
-              userBoardList[dragged.dataset.index] = targetText;
-              userBoardList[event.target.dataset.index] = draggedText;
-            } else {
-              userBoardList = userBoardList.filter((board) => board != draggedText);
+            userBoardList = userBoardList.filter((board) => board != draggedText);
+            let index = userBoardList.indexOf(targetText);
 
-              if (event.target.id == "unshift") {
-                userBoardList.unshift(draggedText);
-              } else if (event.target.id == "push") {
-                userBoardList.push(draggedText);
-              }
+            if (index < userBoardList.length - 1) {
+              userBoardList.splice(index, 0, draggedText);
+            } else {
+              userBoardList.push(draggedText);
             }
 
             save();
@@ -326,16 +296,22 @@ function updateTable() {
     checkbox.checked = userBoardList.includes(checkbox.value);
   });
 
-  draggables.forEach((draggable, i) => {
-    if (i < userBoardList.length) {
-      draggable.textContent = userBoardList[i];
-      draggable.style.backgroundColor = darkBlue;
-      draggable.setAttribute("draggable", true);
+  let user = document.querySelector("#user");
+  user.replaceChildren();
+
+  for (let i = 0; i < userBoardList.length + 2; i++) {
+    let userDiv = document.createElement("div");
+
+    if (i < 2) {
+      userDiv.textContent = "\u00A0";
     } else {
-      draggable.textContent = "뒤에 밀어넣기";
-      draggable.style.backgroundColor = "";
+      userDiv.textContent = userBoardList[i - 2];
+      userDiv.dataset.index = i - 2;
+      userDiv.style.backgroundColor = darkBlue;
+      userDiv.setAttribute("draggable", true);
     }
-  });
+    user.append(userDiv);
+  }
 }
 
 document.querySelector("#resetButton").addEventListener("click", () => {
@@ -343,10 +319,16 @@ document.querySelector("#resetButton").addEventListener("click", () => {
   window.location.reload();
 });
 
+// etc
+
 document.querySelector("#etc").addEventListener("change", (event) => {
   etc[event.target.value] = event.target.checked;
   chrome.storage.sync.set({ etc: etc }, () => {});
 });
+
+document.querySelector("#backupButton").addEventListener("click", backup);
+
+// functions
 
 function save() {
   banList.user.sort((a, b) => (a.name[0] > b.name[0] ? 1 : -1));
@@ -364,7 +346,6 @@ function backup() {
     });
   });
 }
-document.querySelector("#backupButton").addEventListener("click", backup);
 
 function clearCache() {
   chrome.storage.local.get("cache", (data) => {
