@@ -1,4 +1,6 @@
 banList = {};
+boardList = [];
+userBoardList = [];
 etc = {};
 
 chrome.storage.local.get((localData) => {
@@ -18,13 +20,14 @@ chrome.storage.local.get((localData) => {
 chrome.storage.local.get("banList", (data) => {
   banList = data.banList;
   let userList = document.querySelector("#userList ol");
-  for (let user of banList.user) {
+  banList.user.forEach((user) => {
     appendUser(userList, user);
-  }
+  });
+
   let wordList = document.querySelector("#wordList ul");
-  for (let word of banList.word) {
+  banList.word.forEach((word) => {
     appendWord(wordList, word);
-  }
+  });
 });
 
 fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
@@ -40,28 +43,33 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
   });
 recoverCache();
 
+// ruliweb code
+
 function appendUser(userList, user) {
   let template = document.querySelector("#userTemplate").content.cloneNode(true);
-
   let li = template.firstElementChild;
-  li.id = `code-${user.code}`;
   let nick = template.querySelector(".name");
-  for (let name of user.name) {
-    nick.append(name, document.createElement("br"));
-  }
+
+  li.dataset.code = user.code;
+  user.name.forEach((name) => {
+    let p = document.createElement("p");
+    p.textContent = name;
+    nick.append(p);
+  });
   template.querySelector(".code").textContent = user.code;
-  template.querySelector(".memo").value = user?.memo ?? "";
+  template.querySelector(".memo").value = user?.memo || "";
   template.querySelector(".memo").addEventListener("change", (event) => {
-    let code = event.target.parentNode.querySelector(".code").textContent;
+    let code = event.target.closest("li").dataset.code;
     let idx = banList.user.findIndex((user) => user.code == code);
     banList.user[idx].memo = event.target.value.trim();
     save();
   });
   template.querySelector("button").addEventListener("click", (event) => {
-    let code = event.target.parentNode.querySelector(".code").textContent;
+    let li = event.target.closest("li");
+    let code = li.dataset.code;
     let idx = banList.user.findIndex((user) => user.code == code);
     if (idx > -1) banList.user.splice(idx, 1);
-    event.target.parentNode.remove();
+    li.remove();
     save();
   });
   userList.append(li);
@@ -72,10 +80,11 @@ function appendWord(wordList, word) {
 
   template.querySelector("span").textContent = word;
   template.querySelector("button").addEventListener("click", (event) => {
-    let word = event.target.previousElementSibling.textContent;
+    let li = event.target.closest("li");
+    let word = li.querySelector(".name").textContent;
     let idx = banList.word.indexOf(word);
     if (idx > -1) banList.word.splice(idx, 1);
-    event.target.parentNode.remove();
+    li.remove();
     save();
   });
   wordList.append(template.firstElementChild);
@@ -87,7 +96,12 @@ document.querySelector("#addUser").addEventListener("click", () => {
   let idx = banList.user.findIndex((user) => user.code == code);
   if (idx > -1) {
     banList.user[idx].name.unshift(name);
-    document.querySelector(`li#code-${code} span`).innerHTML += `${name}<br>`;
+    let p = document.createElement("p");
+    p.textContent = name;
+    [...document.querySelectorAll("#userList li")]
+      .find((li) => li.dataset.code == code)
+      .querySelector(".name")
+      .prepend(p);
   } else {
     let user = { name: [name], code: code };
     banList.user.push(user);
@@ -115,13 +129,16 @@ function updateUser() {
       .then((content) => {
         let doc = new DOMParser().parseFromString(content, "text/html");
         let nick = doc.querySelector("h2.txt");
+
         if (nick) {
           nick = nick.textContent.split(" MYPI")[0].trim();
+
           if (!banList.user[index].name.includes(nick)) {
             console.log(banList.user[index], nick);
             banList.user[index].name.unshift(nick);
             save();
           }
+
           if (index < banList.user.length - 1) {
             index += 1;
             updateUser();
@@ -136,8 +153,10 @@ function updateUser() {
               let tr = doc.querySelector(".table_body:not(.notice):not(.best):not(.list_inner)");
               // let writer = tr.querySelector("td.writer");
               let writer = tr.querySelector("a.nick");
+
               if (writer) {
                 writer = writer.textContent.trim();
+
                 if (!banList.user[index].name.includes(writer)) {
                   console.log(banList.user[index], writer);
                   banList.user[index].name.unshift(writer);
@@ -146,6 +165,7 @@ function updateUser() {
               } else {
                 console.log(banList.user[index], "del");
               }
+
               if (index < banList.user.length - 1) {
                 index += 1;
                 updateUser();
@@ -169,13 +189,11 @@ document.querySelector("#resetWord").addEventListener("click", () => {
   window.location.reload();
 });
 
-let boardList = [];
-let userBoardList = [];
-document.querySelectorAll("table#original tr").forEach((tr) => {
-  document.querySelector("table#user").append(tr.cloneNode(true));
-});
-let draggables = [...document.querySelectorAll("table#user td")].slice(2);
+// dogdrip code
+
 let dragged;
+const darkBlue = "rgb(46, 67, 97)";
+const lightBlue = "rgb(56, 138, 255)";
 
 fetch("https://www.dogdrip.net/")
   .then((response) => response.text())
@@ -183,17 +201,19 @@ fetch("https://www.dogdrip.net/")
     content = new DOMParser().parseFromString(content, "text/html");
     boardList = content.querySelectorAll("div.eq.overflow-hidden");
     boardList = [...boardList].map((board) => board.querySelector("a.eq.link").textContent.trim());
+    let orig = document.querySelector("#original");
 
-    let td = document.querySelectorAll("#original td");
-    for (let i = 0; i < td.length; i++) {
+    boardList.forEach((board, i) => {
       if (i < 2) {
-        td[i].textContent = boardList[i];
-      } else if (i < boardList.length) {
+        let origDiv = document.createElement("div");
+        origDiv.textContent = board;
+        orig.append(origDiv);
+      } else {
         let template = document.querySelector("#checkboxTemplate").content.cloneNode(true);
         let input = template.querySelector("input");
 
-        input.value = boardList[i];
-        input.nextSibling.textContent = boardList[i];
+        input.value = board;
+        input.nextSibling.textContent = board;
         input.addEventListener("change", (event) => {
           if (event.target.checked) {
             userBoardList.push(event.target.value);
@@ -204,81 +224,118 @@ fetch("https://www.dogdrip.net/")
           save();
           updateTable();
         });
-        td[i].append(template.firstElementChild);
-      } else {
-        td[i].textContent = "\u00A0";
+        orig.append(template.firstElementChild);
       }
-    }
+    });
 
     chrome.storage.sync.get("userBoardList", (data) => {
       if (data.userBoardList == undefined) {
         userBoardList = boardList.slice(2);
       } else {
         userBoardList = data.userBoardList.slice();
-        if (boardList.length > 0 && userBoardList.length > boardList.length) {
-          userBoardList.length = boardList.length;
+        if (boardList.length > 0) {
+          userBoardList = userBoardList.filter((userBoard) => boardList.includes(userBoard));
         }
       }
       save();
+
+      let user = document.querySelector("#user");
+      for (let i = 0; i < userBoardList.length + 3; i++) {
+        let userDiv = document.createElement("div");
+
+        if (i < 1) {
+          userDiv.textContent = "\u00A0";
+        } else {
+          userDiv.className = "boardCell";
+          if (i < 2) {
+            userDiv.textContent = "앞에 밀어넣기";
+            userDiv.classList.add("etc");
+            userDiv.id = "unshift";
+          } else if (i < userBoardList.length + 2) {
+            userDiv.textContent = userBoardList[i - 2];
+          } else {
+            userDiv.textContent = "뒤에 밀어넣기";
+            userDiv.classList.add("etc");
+            userDiv.id = "push";
+          }
+        }
+        user.append(userDiv);
+      }
+      draggables = [...document.querySelectorAll("#user div")].slice(2, -1);
       updateTable();
+
+      draggables.forEach((draggable, i) => {
+        draggable.dataset.index = i;
+      });
+
+      user.addEventListener("dragstart", (event) => {
+        if (event.target.draggable) {
+          dragged = event.target;
+          event.target.style.opacity = 0.5;
+        }
+      });
+      user.addEventListener("dragend", (event) => {
+        event.target.style.opacity = 1;
+        dragged = null;
+      });
+      user.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+      user.addEventListener("dragenter", (event) => {
+        if (dragged && event.target.matches(".boardCell")) {
+          event.target.style.backgroundColor = lightBlue;
+        }
+      });
+      user.addEventListener("dragleave", (event) => {
+        if (dragged && event.target.matches(".boardCell")) {
+          event.target.style.backgroundColor = event.target.draggable ? darkBlue : "";
+        }
+      });
+      user.addEventListener("drop", (event) => {
+        event.preventDefault();
+        if (dragged && event.target.matches(".boardCell")) {
+          event.target.style.backgroundColor = event.target.draggable ? darkBlue : "";
+
+          if (dragged != event.target) {
+            let draggedText = dragged.textContent;
+            let targetText = event.target.textContent;
+
+            if (event.target.draggable) {
+              userBoardList[dragged.dataset.index] = targetText;
+              userBoardList[event.target.dataset.index] = draggedText;
+            } else {
+              userBoardList = userBoardList.filter((board) => board != draggedText);
+
+              if (event.target.id == "unshift") {
+                userBoardList.unshift(draggedText);
+              } else if (event.target.id == "push") {
+                userBoardList.push(draggedText);
+              }
+            }
+
+            save();
+            updateTable();
+          }
+        }
+      });
     });
   });
 
 function updateTable() {
-  let checkboxes = document.querySelectorAll("#dogdrip input");
-  for (let checkbox of checkboxes) {
+  document.querySelectorAll("#dogdrip input").forEach((checkbox) => {
     checkbox.checked = userBoardList.includes(checkbox.value);
-  }
-  for (let i = 0; i < draggables.length; i++) {
+  });
+
+  draggables.forEach((draggable, i) => {
     if (i < userBoardList.length) {
-      draggables[i].textContent = userBoardList[i];
-      draggables[i].style.backgroundColor = "rgb(46,67,97)";
-      draggables[i].draggable = true;
-      if (!draggables[i].hasAttribute("event")) {
-        draggables[i].id = i;
-        draggables[i].setAttribute("event", true);
-        draggables[i].addEventListener("dragstart", (event) => {
-          if (event.target.draggable) {
-            dragged = event.target;
-            event.target.style.opacity = 0.5;
-          }
-        });
-        draggables[i].addEventListener("dragend", (event) => {
-          event.target.style.opacity = 1;
-          dragged = null;
-        });
-        draggables[i].addEventListener("dragover", (event) => {
-          event.preventDefault();
-        });
-        draggables[i].addEventListener("dragenter", (event) => {
-          if (dragged && event.target.draggable) {
-            event.target.style.backgroundColor = "rgb(56,138,255)";
-          }
-        });
-        draggables[i].addEventListener("dragleave", (event) => {
-          if (dragged && event.target.draggable) {
-            event.target.style.backgroundColor = "rgb(46,67,97)";
-          }
-        });
-        draggables[i].addEventListener("drop", (event) => {
-          event.preventDefault();
-          if (dragged && event.target.draggable) {
-            event.target.style.backgroundColor = "rgb(46,67,97)";
-            if (dragged != event.target) {
-              [event.target.textContent, dragged.textContent] = [dragged.textContent, event.target.textContent];
-              userBoardList[dragged.id] = dragged.textContent;
-              userBoardList[event.target.id] = event.target.textContent;
-              save();
-            }
-          }
-        });
-      }
+      draggable.textContent = userBoardList[i];
+      draggable.style.backgroundColor = darkBlue;
+      draggable.setAttribute("draggable", true);
     } else {
-      draggables[i].textContent = "\u00A0";
-      draggables[i].style.backgroundColor = "";
-      draggables[i].draggable = false;
+      draggable.textContent = "뒤에 밀어넣기";
+      draggable.style.backgroundColor = "";
     }
-  }
+  });
 }
 
 document.querySelector("#resetButton").addEventListener("click", () => {
@@ -345,3 +402,36 @@ function saveAs(uri, filename) {
     location.replace(uri);
   }
 }
+
+// li.addEventListener("dragstart", (event) => {
+//   dragged = event.target;
+//   event.target.style.opacity = 0.5;
+//   event.target.style.backgroundColor = "rgb(56,138,255)";
+// });
+// li.addEventListener("dragend", (event) => {
+//   event.target.removeAttribute("style");
+//   dragged = null;
+//   replaces = document.querySelectorAll("#replaceList li");
+//   for (let i = 0; i < replaces.length; i++) {
+//     replaces[i].setAttribute("data-index", i);
+//     replaceList[i] = [replaces[i].querySelector(".original").value, replaces[i].querySelector(".replace").value];
+//   }
+//   // save();
+// });
+// li.addEventListener("dragover", (event) => {
+//   event.preventDefault();
+// });
+// li.addEventListener("dragenter", (event) => {
+//   if (dragged && dragged != event.target) {
+//     if (dragged == event.target.nextElementSibling) {
+//       //상승
+//       event.target.before(dragged);
+//     } else if (dragged == event.target.previousElementSibling) {
+//       //하강
+//       event.target.after(dragged);
+//     }
+//   }
+// });
+// li.addEventListener("drop", (event) => {
+//   event.preventDefault();
+// });
