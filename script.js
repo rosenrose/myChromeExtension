@@ -123,7 +123,7 @@ chrome.storage.local.get("replace", (data) => {
       observer.observe(iframe.contentDocument.body, { childList: true, subtree: true, attributes: true });
     });
   } catch (error) {
-    // console.log("iframe: "+error);
+    // console.log("iframe: " + error);
   }
 
   if (!replaceJson["domainExcept"].includes(domain)) {
@@ -145,6 +145,20 @@ function observeCallback(mutationList) {
     // console.log(mutation.type, mutation.target);
     switch (mutation.type) {
       case "childList":
+        // console.log(mutation.target.textContent.trim());
+        try {
+          mutation.target.querySelectorAll("iframe").forEach((iframe) => {
+            let observer = new MutationObserver(observeCallback);
+            observer.observe(iframe.contentDocument.body, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+            });
+          });
+        } catch (error) {
+          // console.log("iframe: " + error);
+        }
+
         if (domain == "namu.wiki") {
           namu();
         } else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
@@ -175,13 +189,16 @@ function observeCallback(mutationList) {
   });
 }
 
-function textReplace(root) {
-  walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+function textReplace(element) {
+  if (element.nodeType != Node.ELEMENT_NODE) return;
+
+  walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
   while ((node = walk.nextNode())) {
     text = node.textContent;
     if (!/[가-힣]/.test(text)) continue;
     if (replaceJson["tagExcept"].includes(node.parentNode.tagName)) continue;
-
+    // console.log(text.trim());
+    // node.textContent = "a";
     for (let end of replaceJson["ends"]) {
       regex = regexMap[end[0]];
       if ((result = regex.exec(text))) {
@@ -771,8 +788,8 @@ function getMain(link) {
     });
 }
 
-function replaceDebug(root) {
-  walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+function replaceDebug(element) {
+  walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
   while ((node = walk.nextNode())) {
     if (node.textContent.trim()) {
       console.log(text);

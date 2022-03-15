@@ -36,10 +36,10 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
     let doc = new DOMParser().parseFromString(content, "text/html");
     let list = JSON.parse([...doc.querySelectorAll("tr > td:nth-child(2)")].map((i) => i.textContent).join("\n"));
     chrome.storage.local.set({ replace: list }, () => {});
-    document.querySelector("pre").textContent = doc
-      .querySelector("tbody")
-      .textContent.trim()
-      .replace(/\n(\s)\s+/g, "\n$1");
+    // document.querySelector("pre").textContent = doc
+    //   .querySelector("tbody")
+    //   .textContent.trim()
+    //   .replace(/\n(\s)\s+/g, "\n$1");
   });
 recoverCache();
 
@@ -93,9 +93,15 @@ function appendWord(wordList, word) {
 document.querySelector("#addUser").addEventListener("click", () => {
   let name = document.querySelector("#addNameInput").value.trim();
   let code = document.querySelector("#addCodeInput").value.trim();
+  let memo = document.querySelector("#addMemoInput").value.trim();
   let idx = banList.user.findIndex((user) => user.code == code);
+
   if (idx > -1) {
     banList.user[idx].name.unshift(name);
+    if (memo.length) {
+      banList.user[idx].memo = memo;
+    }
+
     let p = document.createElement("p");
     p.textContent = name;
     [...document.querySelectorAll("#userList li")]
@@ -104,9 +110,14 @@ document.querySelector("#addUser").addEventListener("click", () => {
       .prepend(p);
   } else {
     let user = { name: [name], code: code };
+    if (memo.length) {
+      user.memo = memo;
+    }
+
     banList.user.push(user);
     appendUser(document.querySelector("#userList ol"), user);
   }
+
   save();
 });
 
@@ -382,6 +393,10 @@ function saveAs(uri, filename) {
   } else {
     location.replace(uri);
   }
+}
+
+function sortName() {
+  console.log(banList.user.flatMap((a) => a.name).sort((a, b) => b.length - a.length));
 }
 
 // li.addEventListener("dragstart", (event) => {
