@@ -50,7 +50,7 @@ function appendUser(userList, user) {
     nick.append(name, document.createElement("br"));
   }
   template.querySelector(".code").textContent = user.code;
-  template.querySelector(".memo").value = user?.memo;
+  template.querySelector(".memo").value = user?.memo ?? "";
   template.querySelector(".memo").addEventListener("change", (event) => {
     let code = event.target.parentNode.querySelector(".code").textContent;
     let idx = banList.user.findIndex((user) => user.code == code);
