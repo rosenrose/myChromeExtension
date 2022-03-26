@@ -215,12 +215,10 @@ fetch("https://www.dogdrip.net/")
     let orig = document.querySelector("#original");
 
     boardList.forEach((board, i) => {
+      let template = document.querySelector("#checkboxTemplate").content.cloneNode(true);
       if (i < 2) {
-        let origDiv = document.createElement("div");
-        origDiv.textContent = board;
-        orig.append(origDiv);
+        template.firstElementChild.textContent = board;
       } else {
-        let template = document.querySelector("#checkboxTemplate").content.cloneNode(true);
         let input = template.querySelector("input");
 
         input.value = board;
@@ -235,8 +233,8 @@ fetch("https://www.dogdrip.net/")
           save();
           updateTable();
         });
-        orig.append(template.firstElementChild);
       }
+      orig.append(template.firstElementChild);
     });
 
     chrome.storage.sync.get("userBoardList", (data) => {

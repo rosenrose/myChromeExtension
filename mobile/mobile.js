@@ -19,7 +19,9 @@ chrome.storage.local.get("replace", (data) => {
   replaceJson["ilbeReplace"].forEach((ilbe) => {
     if (ilbe[0].includes("${")) {
       regexMap[ilbe[0]] = new RegExp(
-        ilbe[0].replace("${ilbe}", replaceJson["ilbe"]).replace("${endSuffix}", replaceJson["endSuffix"]),
+        ilbe[0]
+          .replace("${ilbe}", replaceJson["ilbe"])
+          .replace("${endSuffix}", replaceJson["endSuffix"]),
         "g"
       );
     } else {
@@ -43,7 +45,11 @@ chrome.storage.local.get("replace", (data) => {
   try {
     document.querySelectorAll("iframe").forEach((iframe) => {
       let observer = new MutationObserver(observeCallback);
-      observer.observe(iframe.contentDocument.body, { childList: true, subtree: true, attributes: false });
+      observer.observe(iframe.contentDocument.body, {
+        childList: true,
+        subtree: true,
+        attributes: false,
+      });
     });
   } catch (error) {
     // console.log("iframe: "+error);
@@ -66,14 +72,14 @@ function observeCallback(mutationList) {
   mutationList.forEach((mutation) => {
     if (mutation.type == "childList") {
       try {
-        mutation.target.querySelectorAll("iframe").forEach((iframe) => {
+        if (mutation.target.matches?.("iframe")) {
           let observer = new MutationObserver(observeCallback);
           observer.observe(iframe.contentDocument.body, {
             childList: true,
             subtree: true,
             attributes: false,
           });
-        });
+        }
       } catch (error) {
         // console.log("iframe: " + error);
       }
@@ -112,7 +118,8 @@ function textReplace(element) {
           let nfd = result[0].normalize("NFD");
           let newNFD;
           if (repStart) {
-            newNFD = nfd.slice(0, start) + rep.normalize("NFD").slice(repStart, repEnd) + nfd.slice(end);
+            newNFD =
+              nfd.slice(0, start) + rep.normalize("NFD").slice(repStart, repEnd) + nfd.slice(end);
           } else {
             newNFD = nfd.slice(0, start) + rep.normalize("NFD") + nfd.slice(end);
           }
@@ -139,7 +146,8 @@ function textReplace(element) {
       for (let replace of replaceJson["ilbeReplace"]) {
         regex = regexMap[replace[0]];
         if ((result = regex.exec(text))) {
-          if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep))) continue;
+          if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep)))
+            continue;
           node.textContent = text.replace(regex, replace[1]);
           text = node.textContent;
           regex.lastIndex = 0;

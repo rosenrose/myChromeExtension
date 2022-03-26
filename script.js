@@ -96,7 +96,9 @@ chrome.storage.local.get("replace", (data) => {
   replaceJson["ilbeReplace"].forEach((ilbe) => {
     if (ilbe[0].includes("${")) {
       regexMap[ilbe[0]] = new RegExp(
-        ilbe[0].replace("${ilbe}", replaceJson["ilbe"]).replace("${endSuffix}", replaceJson["endSuffix"]),
+        ilbe[0]
+          .replace("${ilbe}", replaceJson["ilbe"])
+          .replace("${endSuffix}", replaceJson["endSuffix"]),
         "g"
       );
     } else {
@@ -116,11 +118,20 @@ chrome.storage.local.get("replace", (data) => {
   });
 
   observer = new MutationObserver(observeCallback);
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeOldValue: true });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeOldValue: true,
+  });
   try {
     document.querySelectorAll("iframe").forEach((iframe) => {
       let observer = new MutationObserver(observeCallback);
-      observer.observe(iframe.contentDocument.body, { childList: true, subtree: true, attributes: true });
+      observer.observe(iframe.contentDocument.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+      });
     });
   } catch (error) {
     // console.log("iframe: " + error);
@@ -147,14 +158,14 @@ function observeCallback(mutationList) {
       case "childList":
         // console.log(mutation.target.textContent.trim());
         try {
-          mutation.target.querySelectorAll("iframe").forEach((iframe) => {
+          if (mutation.target.matches?.("iframe")) {
             let observer = new MutationObserver(observeCallback);
-            observer.observe(iframe.contentDocument.body, {
+            observer.observe(mutation.target.contentDocument.body, {
               childList: true,
               subtree: true,
-              attributes: true,
+              attributes: false,
             });
-          });
+          }
         } catch (error) {
           // console.log("iframe: " + error);
         }
@@ -216,7 +227,8 @@ function textReplace(element) {
           let nfd = result[0].normalize("NFD");
           let newNFD;
           if (repStart) {
-            newNFD = nfd.slice(0, start) + rep.normalize("NFD").slice(repStart, repEnd) + nfd.slice(end);
+            newNFD =
+              nfd.slice(0, start) + rep.normalize("NFD").slice(repStart, repEnd) + nfd.slice(end);
           } else {
             newNFD = nfd.slice(0, start) + rep.normalize("NFD") + nfd.slice(end);
           }
@@ -234,7 +246,9 @@ function textReplace(element) {
         } else {
           node.textContent = text.replace(regex, replace[1]);
         }
-        console.log(`${text.trim()} (${replace[0]} -> ${result[0]})\n-----\n${node.textContent.trim()}`);
+        console.log(
+          `${text.trim()} (${replace[0]} -> ${result[0]})\n-----\n${node.textContent.trim()}`
+        );
         text = node.textContent;
         regex.lastIndex = 0;
       }
@@ -243,7 +257,8 @@ function textReplace(element) {
       for (let replace of replaceJson["ilbeReplace"]) {
         regex = regexMap[replace[0]];
         if ((result = regex.exec(text))) {
-          if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep))) continue;
+          if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep)))
+            continue;
           node.textContent = text.replace(regex, replace[1]);
           console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
           text = node.textContent;
@@ -377,12 +392,16 @@ function dogdrip() {
   shortcut["s"] = { url: "/movie" };
 
   if (url.pathname == "/") {
-    let main = document.querySelectorAll("div.eq.section.secontent.background-color-content > div.xe-widget-wrapper");
+    let main = document.querySelectorAll(
+      "div.eq.section.secontent.background-color-content > div.xe-widget-wrapper"
+    );
     main[0].hidden = true;
     main[8].hidden = true;
 
     let boardList = [...document.querySelectorAll("div.eq.overflow-hidden")].slice(2);
-    let boardMap = Object.fromEntries(boardList.map((board) => [board.querySelector("a").textContent.trim(), board]));
+    let boardMap = Object.fromEntries(
+      boardList.map((board) => [board.querySelector("a").textContent.trim(), board])
+    );
 
     chrome.storage.sync.get(["userBoardList", "etc"], (data) => {
       if (data.etc.isBoard) {
@@ -401,7 +420,8 @@ function dogdrip() {
       const capicity = 30;
       addNum((startNum = 0), capicity);
       shortcut["z"] = () => addNum((startNum = Math.max(startNum - capicity, 0)), capicity);
-      shortcut["x"] = () => addNum((startNum = Math.min(startNum + capicity, capicity * 3)), capicity);
+      shortcut["x"] = () =>
+        addNum((startNum = Math.min(startNum + capicity, capicity * 3)), capicity);
     });
   } else if (!new URLPattern({ pathname: "/(\\d+)" }).test(url)) {
     document.querySelectorAll("tbody tr:not(.notice)")?.forEach((tr, i) => {
@@ -428,7 +448,8 @@ function namu() {
   // let div = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   document.querySelectorAll("aside > div").forEach((div) => {
     if (
-      ((div.querySelector("h5") && div.querySelector("h5").textContent != "최근 변경") || !div.querySelector("h5")) &&
+      ((div.querySelector("h5") && div.querySelector("h5").textContent != "최근 변경") ||
+        !div.querySelector("h5")) &&
       !div.hidden
     ) {
       div.hidden = true;
@@ -437,7 +458,13 @@ function namu() {
 
   if (url.pathname.startsWith("/history")) {
     xpath = "//a[text() = '비교']/../../..";
-    let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    let ul = document.evaluate(
+      xpath,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue;
     ul?.querySelectorAll("li").forEach((li) => {
       let id = li.querySelector("div");
       let a = id.querySelector("a");
@@ -449,7 +476,13 @@ function namu() {
     });
   } else if (url.pathname == "/member/starred_documents") {
     xpath = "//li[contains(text(), '수정시각')]/..";
-    let ul = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    let ul = document.evaluate(
+      xpath,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue;
     ul?.querySelectorAll("li > a").forEach((a) => {
       a.href = a.href.replace("/w/", "/history/");
       a.target = "_blank";
@@ -610,7 +643,11 @@ function addNum(start, capicity, select) {
           tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
           title.target = "_blank";
 
-          if (banWords.some((word) => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null)) {
+          if (
+            banWords.some(
+              (word) => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null
+            )
+          ) {
             tr.hidden = true;
             console.log(title, title.firstChild.textContent.trim() + "\n" + writer.slice(0, 2));
             // title.innerHTML+=`${head}←(병신)${tail}`;
@@ -624,7 +661,9 @@ function addNum(start, capicity, select) {
               hide(tr, writer, code, "main");
             }
           } else if (
-            (result = banList.user.find((user) => user.name.includes(writer) && banCodes.includes(user.code)))
+            (result = banList.user.find(
+              (user) => user.name.includes(writer) && banCodes.includes(user.code)
+            ))
           ) {
             hide(tr, writer, result.code, "main");
           } else {
@@ -838,3 +877,16 @@ function swap(srcNode, destNode) {
 function randomInt(minInclude, maxExclude) {
   return Math.floor(Math.random() * (maxExclude - minInclude)) + minInclude;
 }
+
+// a = document.querySelector("#container > h1 > yt-formatted-string");
+// a.draggable = true;
+// a.style.position = "fixed";
+
+// document.addEventListener("dragover", (e) => {
+//   a.style.left = `${e.pageX}px`;
+//   a.style.top = `${e.pageY}px`;
+// });
+// a.addEventListener("dragstart", (e) => console.log(e.type));
+// a.addEventListener("dragend", (e) => console.log(e.type, x, y));
+// a.addEventListener("dragleave", (e) => console.log(e.type));
+// a.addEventListener("dragexit", (e) => console.log(e.type));

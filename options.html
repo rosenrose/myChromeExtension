@@ -67,20 +67,21 @@
         flex-direction: column;
         gap: 0.5rem;
       }
+
       #userList .name {
-        width: 11.5rem;
         display: flex;
         flex-direction: column;
+      }
+      #userList .name + div {
+        display: flex;
+        gap: 0.3rem;
+        /* justify-content: space-between; */
       }
       #userList .code {
         width: 3rem;
       }
       #userList .memo {
         width: 5rem;
-      }
-
-      #wordList .name {
-        /* width: 50%; */
       }
 
       #dogdrip {
@@ -171,9 +172,11 @@
     <li>
       <div>
         <div class="name"></div>
-        <span class="code"></span>
-        <input type="text" class="memo" />
-        <button type="button" class="delUser">del</button>
+        <div>
+          <span class="code"></span>
+          <input type="text" class="memo" />
+          <button type="button" class="delUser">del</button>
+        </div>
       </div>
     </li>
   </template>
