@@ -1,27 +1,18 @@
 {
-    "manifest_version": 2,
-    "name": "Mobile",
-    "version": "1.0",
-    "description" : "Base Level Extension",
-    "browser_action": {
-        "default_popup": "options.html"
-    },
-    "permissions": [
-        "storage",
-        "declarativeContent",
-        "activeTab",
-        "tabs",
-        "webNavigation",
-        "contextMenus"
-    ],
-    "options_page": "options.html",
-    "content_scripts": [{
-        "matches": [
-            "*://*/*"
-        ],
-        "exclude_matches": [],
-        "js": [
-            "mobile.js"
-        ]
-    }]
+  "manifest_version": 3,
+  "name": "Mobile",
+  "version": "1.0",
+  "description": "Base Level Extension",
+  "action": {
+    "default_popup": "options.html"
+  },
+  "permissions": ["storage", "declarativeContent", "activeTab", "tabs", "webNavigation"],
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "exclude_matches": [],
+      "js": ["mobile.js"]
+    }
+  ]
 }
