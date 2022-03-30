@@ -69,20 +69,15 @@ chrome.storage.local.get("replace", (data) => {
 });
 
 if (domain == "m.ruliweb.com") {
-  fetch("https://raw.githubusercontent.com/rosenrose/myChromeExtension/master/backup.json")
-    .then((response) => response.json())
-    .then((json) => {
-      let banUser = json[0].user;
-      let banNames = banUser.flatMap((user) => user.name);
-
-      document.querySelectorAll("table.board_list_table tbody > tr").forEach((tr) => {
-        let writer = tr.querySelector(".subject .info .writer");
-        if (banNames.includes(writer?.textContent.trim())) {
-          // writer.style.color = "red";
-          writer.style.textDecoration = "line-through";
-        }
-      });
+  chrome.storage.local.get("banNames", (data) => {
+    document.querySelectorAll("table.board_list_table tbody > tr").forEach((tr) => {
+      let writer = tr.querySelector(".subject .info .writer");
+      if (data.banNames.includes(writer?.textContent.trim())) {
+        // writer.style.color = "red";
+        writer.style.textDecoration = "line-through";
+      }
     });
+  });
 }
 
 function observeCallback(mutationList) {
