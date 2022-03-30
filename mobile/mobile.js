@@ -78,7 +78,8 @@ if (domain == "m.ruliweb.com") {
       document.querySelectorAll("table.board_list_table tbody > tr").forEach((tr) => {
         let writer = tr.querySelector(".subject .info .writer");
         if (banNames.includes(writer?.textContent.trim())) {
-          writer.style.color = "red";
+          // writer.style.color = "red";
+          writer.style.textDecoration = "line-through";
         }
       });
     });
