@@ -152,6 +152,7 @@ chrome.storage.local.get("replace", (data) => {
 });
 
 function observeCallback(mutationList) {
+  // if (mutation.target.nodeType === Node.ELEMENT_NODE)
   mutationList.forEach((mutation) => {
     // console.log(mutation.type, mutation.target);
     switch (mutation.type) {
@@ -392,11 +393,14 @@ function dogdrip() {
   shortcut["s"] = { url: "/movie" };
 
   if (url.pathname == "/") {
-    let main = document.querySelectorAll(
-      "div.eq.section.secontent.background-color-content > div.xe-widget-wrapper"
-    );
+    let main = [
+      ...document.querySelectorAll(
+        "div.eq.section.secontent.background-color-content > div.xe-widget-wrapper"
+      ),
+    ];
     main[0].hidden = true;
     main[8].hidden = true;
+    main.at(-1).hidden = true;
 
     let boardList = [...document.querySelectorAll("div.eq.overflow-hidden")].slice(2);
     let boardMap = Object.fromEntries(
@@ -778,11 +782,12 @@ function hide(elem, writer, code, board) {
   if (board == "main") {
     elem.hidden = true;
     let a = elem.querySelector("a.title_wrapper");
-    console.log(a, a.firstChild.textContent.trim() + "\n" + writer.slice(0, 5));
+    console.log(a, a.firstChild.textContent.trim() + "\n" + writer);
   } else if (board == "top") {
     elem.innerHTML = `${head}()${tail}`;
-    console.log(elem, writer.slice(0, 5));
+    console.log(elem, writer);
   }
+
   let user = banList.user.find((user) => user.code == code);
   if (!user.name.includes(writer)) {
     user.name.unshift(writer);
