@@ -74,7 +74,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.url !== location.href || req.cmd !== "myExt" || req.id !== "imagePaste") return;
 
   let input;
-  if (contextMenuElement.matches("input[type='file']")) {
+  if (contextMenuElement?.matches("input[type='file']")) {
     input = contextMenuElement;
   } else {
     input = document.querySelector(prompt("query?", "input[type='file']"));
@@ -86,7 +86,11 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       let datatransfer = new DataTransfer();
       datatransfer.items.add(new File([blob], "image.png", { type: blob.type }));
       input.files = datatransfer.files;
+
       input.dispatchEvent(new InputEvent("change"), { bubbles: true });
+      try {
+        reactTriggerChange(input);
+      } catch {}
     });
   });
 });
