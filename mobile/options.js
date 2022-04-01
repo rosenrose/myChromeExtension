@@ -19,3 +19,45 @@ fetch("https://raw.githubusercontent.com/rosenrose/myChromeExtension/master/back
 
     chrome.storage.local.set({ banNames: banNames }, () => {});
   });
+
+const banWordsUl = document.querySelector("#banWords");
+let banWords = [];
+chrome.storage.local.get("banWords", (data) => {
+  data.banWords?.forEach(addWord);
+});
+banWordsUl.addEventListener("change", (event) => {
+  const li = event.target.closest("li");
+  const newWord = event.target.value;
+  const index = banWords.findIndex((word) => word === li.dataset.word);
+  banWords[index] = newWord;
+  save();
+  li.dataset.word = newWord;
+});
+banWordsUl.addEventListener("click", (event) => {
+  if (event.target.matches?.("button")) {
+    const li = event.target.closest("li");
+    banWords = banWords.filter((word) => word !== li.dataset.word);
+    save();
+    li.remove();
+  }
+});
+
+const addBanWord = document.querySelector("form");
+addBanWord.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const word = event.target.querySelector("input").value.trim();
+  banWords.push(word);
+  save();
+  addWord(word);
+});
+
+function addWord(word) {
+  const template = document.querySelector("#banWordTemplate").content.cloneNode(true);
+  const li = template.firstElementChild;
+  li.dataset.word = word;
+  template.querySelector("input").value = word;
+  banWordsUl.append(li);
+}
+function save() {
+  chrome.storage.local.set({ banWords: banWords.sort() }, () => {});
+}

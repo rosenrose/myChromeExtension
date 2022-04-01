@@ -69,12 +69,17 @@ chrome.storage.local.get("replace", (data) => {
 });
 
 if (domain == "m.ruliweb.com") {
-  chrome.storage.local.get("banNames", (data) => {
+  chrome.storage.local.get(["banNames", "banWords"], (data) => {
     document.querySelectorAll("table.board_list_table tbody > tr").forEach((tr) => {
       let writer = tr.querySelector(".subject .info .writer");
       if (data.banNames.includes(writer?.textContent.trim())) {
         // writer.style.color = "red";
         writer.style.textDecoration = "line-through";
+      }
+
+      let title = tr.querySelector(".subject .title");
+      if (data.banWords.some((word) => title?.textContent.includes(word))) {
+        tr.style.display = "none";
       }
     });
   });
