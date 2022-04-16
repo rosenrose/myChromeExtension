@@ -34,7 +34,9 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
   .then((response) => response.text())
   .then((content) => {
     let doc = new DOMParser().parseFromString(content, "text/html");
-    let list = JSON.parse([...doc.querySelectorAll("tr > td:nth-child(2)")].map((i) => i.textContent).join("\n"));
+    let list = JSON.parse(
+      [...doc.querySelectorAll("tr > td:nth-child(2)")].map((i) => i.textContent).join("\n")
+    );
     chrome.storage.local.set({ replace: list }, () => {});
     // document.querySelector("pre").textContent = doc
     //   .querySelector("tbody")
@@ -335,7 +337,8 @@ document.querySelector("#etc").addEventListener("change", (event) => {
   chrome.storage.sync.set({ etc: etc }, () => {});
 });
 
-document.querySelector("#backupButton").addEventListener("click", backup);
+document.querySelector("#saveBackupBtn").addEventListener("click", saveBackup);
+document.querySelector("#loadBackup").addEventListener("change", loadBackup);
 
 // functions
 
@@ -346,7 +349,7 @@ function save() {
   chrome.storage.sync.set({ userBoardList: userBoardList }, () => {});
 }
 
-function backup() {
+function saveBackup() {
   chrome.storage.local.get((localData) => {
     chrome.storage.sync.get((syncData) => {
       json = JSON.stringify([localData.banList, syncData.userBoardList]);
@@ -354,6 +357,18 @@ function backup() {
       saveAs(URL.createObjectURL(blob), "backup.json");
     });
   });
+}
+
+function loadBackup(event) {
+  const file = event.target.files?.[0];
+  if (file) {
+    file.text().then((text) => {
+      const data = JSON.parse(text);
+      console.log(data);
+      chrome.storage.local.set({ banList: data[0] }, () => {});
+      chrome.storage.sync.set({ userBoardList: data[1] }, () => {});
+    });
+  }
 }
 
 function clearCache() {

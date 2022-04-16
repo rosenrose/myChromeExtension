@@ -206,7 +206,7 @@ function observeCallback(mutationList) {
 }
 
 function textReplace(element) {
-  if (element.nodeType != Node.ELEMENT_NODE) return;
+  if (element?.nodeType && element.nodeType !== Node.ELEMENT_NODE) return;
 
   walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
   while ((node = walk.nextNode())) {

@@ -1,16 +1,22 @@
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.set(
-    {
+  chrome.storage.sync.get(null, (data) => {
+    const initial = {
       etc: {
         isBoard: false,
         isFetch: false,
       },
       userBoardList: [],
-    },
-    () => {}
-  );
-  chrome.storage.local.set(
-    {
+    };
+
+    for (const key in initial) {
+      if (!(key in data)) {
+        chrome.storage.sync.set({ [key]: initial[key] }, () => {});
+      }
+    }
+  });
+
+  chrome.storage.local.get(null, (data) => {
+    const initial = {
       banList: {
         user: [],
         word: [],
@@ -19,9 +25,14 @@ chrome.runtime.onInstalled.addListener(() => {
         main: [],
         top: [],
       },
-    },
-    () => {}
-  );
+    };
+
+    for (const key in initial) {
+      if (!(key in data)) {
+        chrome.storage.local.set({ [key]: initial[key] }, () => {});
+      }
+    }
+  });
 });
 
 // chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
