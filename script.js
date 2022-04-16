@@ -677,7 +677,7 @@ function addNum(start, capicity, select) {
           } else {
             // console.log("FETCH", tr);
             if (etc.isFetch) {
-              await sleep(randomInt(1450, 1600));
+              await sleep(randomInt(1400, 1700));
               let [writer, code, dislike] = await getNameCode(title.href);
               dislike_value = dislike;
 
