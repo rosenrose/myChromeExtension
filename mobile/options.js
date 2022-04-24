@@ -7,7 +7,7 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
       .join("\n");
 
     chrome.storage.local.set({ replace: JSON.parse(list) }, () => {
-      document.querySelector("pre").textContent = list;
+      document.querySelector("#replace").textContent = list;
     });
   });
 
@@ -17,7 +17,9 @@ fetch("https://raw.githubusercontent.com/rosenrose/myChromeExtension/master/back
     let banUser = json[0].user;
     let banNames = banUser.flatMap((user) => user.name);
 
-    chrome.storage.local.set({ banNames: banNames }, () => {});
+    chrome.storage.local.set({ banNames: banNames }, () => {
+      document.querySelector("#banUsers").textContent = JSON.stringify(banUser, null, 2);
+    });
   });
 
 const banWordsUl = document.querySelector("#banWords");
