@@ -26,6 +26,7 @@ const banWordsUl = document.querySelector("#banWords");
 let banWords = [];
 chrome.storage.local.get("banWords", (data) => {
   data.banWords?.forEach(addWord);
+  banWords = [...data.banWords];
 });
 banWordsUl.addEventListener("change", (event) => {
   const li = event.target.closest("li");
