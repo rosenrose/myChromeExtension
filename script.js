@@ -650,6 +650,8 @@ function addNum(start, capicity, select) {
         for (let tr of document.querySelectorAll("tr.table_body:not([hidden])")) {
           let writer = tr.querySelector("a.nick").textContent.trim();
           let title = tr.querySelector("a.title_wrapper");
+          title.href = title.href.replace("etcs", "community");
+          let link = title.href.split("?")[0];
           let dislike_value = "";
 
           tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
@@ -665,7 +667,7 @@ function addNum(start, capicity, select) {
             // title.innerHTML+=`${head}←(병신)${tail}`;
           }
 
-          if ((result = cache.main.find((main) => main.link == title.href.split("?")[0]))) {
+          if ((result = cache.main.find((main) => main.link == link))) {
             let [writer, code] = result.info;
             dislike_value = result.dislike;
 
@@ -682,14 +684,14 @@ function addNum(start, capicity, select) {
             // console.log("FETCH", tr);
             if (etc.isFetch) {
               await sleep(randomInt(1400, 2000));
-              let [writer, code, dislike] = await getNameCode(title.href);
+              let [writer, code, dislike] = await getNameCode(link);
               dislike_value = dislike;
 
               if (banCodes.includes(code)) {
                 hide(tr, writer, code, "main");
               }
               cache.main.unshift({
-                link: title.href.split("?")[0],
+                link,
                 info: [writer, code],
                 title: title.textContent.trim(),
                 dislike: dislike,
