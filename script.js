@@ -801,6 +801,7 @@ function hide(elem, writer, code, board) {
   let user = banList.user.find((user) => user.code == code);
   if (!user.name.includes(writer)) {
     user.name.unshift(writer);
+    console.log(`${writer} ${code}`);
     chrome.storage.local.set({ banList: banList }, () => {});
   }
 }
