@@ -464,9 +464,17 @@ function namu() {
         !div.querySelector("h5")) &&
       !div.hidden
     ) {
-      div.hidden = true;
+      div.remove();
     }
   });
+
+  let adImg = [...document.querySelectorAll("span > img")].find(
+    (img) =>
+      img.src ==
+      "https://w.namu.la/s/242e98ce64b18aa7784a5001399bd9fea65a6bdd3255c57276de11324245ad2e"
+  );
+  // console.log(adImg);
+  adImg?.closest("table")?.remove();
 
   if (url.pathname.startsWith("/history")) {
     xpath = "//a[text() = '비교']/../../..";
