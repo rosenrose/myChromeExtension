@@ -180,13 +180,32 @@ function observeCallback(mutationList) {
         } else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
           textReplace(mutation.target);
           // replaceDeubg(mutation.target);
+
+          if (domain == "dcinside.com") {
+            document.querySelectorAll(".written_dccon").forEach((con) => {
+              let check = con
+                .getAttributeNames()
+                .map((attr) => con.getAttribute(attr))
+                .filter((a) => a != "");
+              if (check.some((c) => replaceJson["ilbeCon"].includes(c))) {
+                con.parentNode.remove();
+                // console.log(con.getAttributeNames());
+              }
+            });
+          }
           if (domain == "laftel.net") {
             let inside = document.querySelector(".inside");
             if (inside) {
               inside.hidden = true;
             }
           }
+          if (domain == "map.kakao.com") {
+            document.querySelectorAll("span.name").forEach((span) => {
+              span.style.color = "#777";
+            });
+          }
         }
+
         if (domain.includes("dood")) {
           document.querySelector("#video_player > div.vjs-text-track-display")?.remove();
         }
@@ -275,18 +294,6 @@ function textReplace(element) {
         }
       }
     }
-  }
-  if (domain == "dcinside.com") {
-    document.querySelectorAll(".written_dccon").forEach((con) => {
-      let check = con
-        .getAttributeNames()
-        .map((attr) => con.getAttribute(attr))
-        .filter((a) => a != "");
-      if (check.some((c) => replaceJson["ilbeCon"].includes(c))) {
-        con.parentNode.remove();
-        // console.log(con.getAttributeNames());
-      }
-    });
   }
 }
 
