@@ -702,20 +702,22 @@ function addNum(start, capicity, select) {
             // console.log("FETCH", tr);
             if (etc.isFetch) {
               // await sleep(randomInt(1400, 2000));
-              let [writer, code, dislike] = await getNameCode(link);
-              dislike_value = dislike;
+              try {
+                let [writer, code, dislike] = await getNameCode(link);
+                dislike_value = dislike;
 
-              if (banCodes.includes(code)) {
-                hide(tr, writer, code, "main");
-              }
-              cache.main.unshift({
-                link,
-                info: [writer, code],
-                title: title.textContent.trim(),
-                dislike: dislike,
-              });
-              cache.main.pop();
-              chrome.storage.local.set({ cache: cache }, () => {});
+                if (banCodes.includes(code)) {
+                  hide(tr, writer, code, "main");
+                }
+                cache.main.unshift({
+                  link,
+                  info: [writer, code],
+                  title: title.textContent.trim(),
+                  dislike: dislike,
+                });
+                cache.main.pop();
+                chrome.storage.local.set({ cache: cache }, () => {});
+              } catch (ex) {}
             }
           }
 
@@ -767,17 +769,19 @@ function addNum(start, capicity, select) {
               //getNameCode(item.href, item)//item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
               if (etc.isFetch) {
                 await sleep(randomInt(3500, 4500));
-                let [writer, code] = await getNameCode(item.href);
-                if (banCodes.includes(code)) {
-                  hide(item, writer, code, "top");
-                }
-                cache.top.unshift({
-                  link: item.href,
-                  info: [writer, code],
-                  title: item.textContent.trim(),
-                });
-                cache.top.pop();
-                chrome.storage.local.set({ cache: cache }, () => {});
+                try {
+                  let [writer, code] = await getNameCode(item.href);
+                  if (banCodes.includes(code)) {
+                    hide(item, writer, code, "top");
+                  }
+                  cache.top.unshift({
+                    link: item.href,
+                    info: [writer, code],
+                    title: item.textContent.trim(),
+                  });
+                  cache.top.pop();
+                  chrome.storage.local.set({ cache: cache }, () => {});
+                } catch (ex) {}
               }
             }
 
