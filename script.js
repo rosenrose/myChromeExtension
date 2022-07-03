@@ -120,6 +120,11 @@ chrome.storage.local.get("replace", (data) => {
   replaceJson["ends"].forEach((end) => {
     regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
   });
+  Object.values(replaceJson["domainSpecific"]).forEach((value) => {
+    value.forEach((replace) => {
+      regexMap[replace[0]] = new RegExp(replace[0], "g");
+    });
+  });
 
   observer = new MutationObserver(observeCallback);
   observer.observe(document.body, {
@@ -281,12 +286,25 @@ function textReplace(element) {
         regex.lastIndex = 0;
       }
     }
+
     if (replaceJson["repDomain"].includes(domain)) {
       for (let replace of replaceJson["ilbeReplace"]) {
         regex = regexMap[replace[0]];
         if ((result = regex.exec(text))) {
           if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep)))
             continue;
+          node.textContent = text.replace(regex, replace[1]);
+          console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
+          text = node.textContent;
+          regex.lastIndex = 0;
+        }
+      }
+    }
+
+    if (Object.keys(replaceJson["domainSpecific"]).includes(domain)) {
+      for (let replace of replaceJson["domainSpecific"][domain]) {
+        regex = regexMap[replace[0]];
+        if ((result = regex.exec(text))) {
           node.textContent = text.replace(regex, replace[1]);
           console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
           text = node.textContent;
