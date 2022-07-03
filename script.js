@@ -301,7 +301,7 @@ function textReplace(element) {
       }
     }
 
-    if (Object.keys(replaceJson["domainSpecific"]).includes(domain)) {
+    if (domain in replaceJson["domainSpecific"]) {
       for (let replace of replaceJson["domainSpecific"][domain]) {
         regex = regexMap[replace[0]];
         if ((result = regex.exec(text))) {
