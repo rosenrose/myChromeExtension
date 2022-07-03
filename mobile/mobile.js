@@ -104,6 +104,20 @@ function observeCallback(mutationList) {
       if (!replaceJson["domainExcept"].includes(domain)) {
         textReplace(mutation.target);
       }
+      if (domain == "dcinside.com") {
+        document.querySelectorAll(".written_dccon").forEach((con) => {
+          let check = con
+            .getAttributeNames()
+            .map((attr) => con.getAttribute(attr))
+            .filter((a) => a != "");
+          if (check.some((c) => replaceJson["ilbeCon"].includes(c))) {
+            con.remove();
+          }
+        });
+        document.querySelectorAll("li.comment:not([id])").forEach((dory) => {
+          dory.style.display = "none";
+        });
+      }
     }
   });
 }
@@ -161,6 +175,7 @@ function textReplace(element) {
         regex.lastIndex = 0;
       }
     }
+
     if (replaceJson["repDomain"].includes(domain)) {
       for (let replace of replaceJson["ilbeReplace"]) {
         regex = regexMap[replace[0]];
@@ -173,20 +188,17 @@ function textReplace(element) {
         }
       }
     }
-  }
-  if (domain == "dcinside.com") {
-    document.querySelectorAll(".written_dccon").forEach((con) => {
-      let check = con
-        .getAttributeNames()
-        .map((attr) => con.getAttribute(attr))
-        .filter((a) => a != "");
-      if (check.some((c) => replaceJson["ilbeCon"].includes(c))) {
-        con.remove();
+
+    if (domain in replaceJson["domainSpecific"]) {
+      for (let replace of replaceJson["domainSpecific"][domain]) {
+        regex = regexMap[replace[0]];
+        if ((result = regex.exec(text))) {
+          node.textContent = text.replace(regex, replace[1]);
+          text = node.textContent;
+          regex.lastIndex = 0;
+        }
       }
-    });
-    document.querySelectorAll("li.comment:not([id])").forEach((dory) => {
-      dory.style.display = "none";
-    });
+    }
   }
 }
 
