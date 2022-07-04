@@ -39,6 +39,11 @@ chrome.storage.local.get("replace", (data) => {
   replaceJson["ends"].forEach((end) => {
     regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
   });
+  Object.values(replaceJson["domainSpecific"]).forEach((value) => {
+    value.forEach((replace) => {
+      regexMap[replace[0]] = new RegExp(replace[0], "g");
+    });
+  });
 
   observer = new MutationObserver(observeCallback);
   observer.observe(document.body, { childList: true, subtree: true, attributes: false });
