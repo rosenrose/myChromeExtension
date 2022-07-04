@@ -17,7 +17,7 @@ fetch("https://raw.githubusercontent.com/rosenrose/myChromeExtension/master/back
     let banUser = json[0].user;
     let banNames = banUser.flatMap((user) => user.name);
 
-    chrome.storage.local.set({ banNames: banNames }, () => {
+    chrome.storage.local.set({ banNames }, () => {
       document.querySelector("#banUsers").textContent = JSON.stringify(banUser, null, 2);
     });
   });
@@ -62,5 +62,6 @@ function addWord(word) {
   banWordsUl.append(li);
 }
 function save() {
-  chrome.storage.local.set({ banWords: banWords.sort() }, () => {});
+  banWords.sort();
+  chrome.storage.local.set({ banWords }, () => {});
 }
