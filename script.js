@@ -205,7 +205,7 @@ function observeCallback(mutationList) {
             }
           }
           if (domain == "map.kakao.com") {
-            document.querySelectorAll("span.name").forEach((span) => {
+            document.querySelectorAll("span.name, strong.placename").forEach((span) => {
               span.style.color = "#777";
             });
           }

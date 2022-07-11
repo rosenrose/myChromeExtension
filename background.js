@@ -57,16 +57,18 @@ chrome.runtime.onInstalled.addListener(() => {
 //     });
 // }
 
-chrome.contextMenus.create({
-  id: "ruliweb",
-  title: "차단",
-  contexts: ["link"],
-});
-chrome.contextMenus.create({
-  id: "imagePaste",
-  title: "이미지 붙여넣기",
-  contexts: ["all"],
-});
+try {
+  chrome.contextMenus.create({
+    id: "ruliweb",
+    title: "차단",
+    contexts: ["link"],
+  });
+  chrome.contextMenus.create({
+    id: "imagePaste",
+    title: "이미지 붙여넣기",
+    contexts: ["all"],
+  });
+} catch (e) {}
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   chrome.tabs.sendMessage(tab.id, { id: info.menuItemId, url: info.pageUrl, cmd: "myExt" });
