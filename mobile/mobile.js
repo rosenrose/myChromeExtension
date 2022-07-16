@@ -29,12 +29,7 @@ chrome.storage.local.get("replace", (data) => {
     }
   });
   replaceJson["replaceList"].forEach((replace) => {
-    if (zipRegex.exec(replace[1])) {
-      regexMap[replace[0]] = new RegExp(replace[0], "gd");
-      zipRegex.lastIndex = 0;
-    } else {
-      regexMap[replace[0]] = new RegExp(replace[0], "g");
-    }
+    regexMap[replace[0]] = new RegExp(replace[0], "g");
   });
   replaceJson["ends"].forEach((end) => {
     regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
@@ -144,7 +139,6 @@ function textReplace(element) {
         node.textContent = text.replace(regex, end[1]);
         // writeLog(`${text}\n-----\n${node.textContent}`);
         text = node.textContent;
-        regex.lastIndex = 0;
       }
     }
     // writeLog(text);
@@ -164,20 +158,19 @@ function textReplace(element) {
           node.textContent = text.replace(regex, newNFD.normalize());
         } else if ((repZips = replace[1].match(zipRegex))) {
           let orgZips = replace[0].match(zipRegex);
-          let indices = [];
+          let replaceText = [];
           for (let i = 1; i < result.length; i++) {
             let orgZip = orgZips[i - 1].split("|");
             let repZip = repZips[i - 1].split("|");
             let index = orgZip.indexOf(result[i]);
-            indices.push([repZip[index], result.indices[i]]);
+            replaceText.push(repZip[index]);
           }
-          node.textContent = replaceAt(text, ...indices);
+          node.textContent = text.replace(regex, replaceText.join(""));
         } else {
           node.textContent = text.replace(regex, replace[1]);
         }
         // writeLog(`${text} (${replace[0]} -> ${result[0]})\n-----\n${node.textContent}`);
         text = node.textContent;
-        regex.lastIndex = 0;
       }
     }
 
@@ -189,7 +182,6 @@ function textReplace(element) {
             continue;
           node.textContent = text.replace(regex, replace[1]);
           text = node.textContent;
-          regex.lastIndex = 0;
         }
       }
     }
@@ -200,25 +192,10 @@ function textReplace(element) {
         if ((result = regex.exec(text))) {
           node.textContent = text.replace(regex, replace[1]);
           text = node.textContent;
-          regex.lastIndex = 0;
         }
       }
     }
   }
-}
-
-function replaceAt(str, ...indices) {
-  indices = indices.sort((a, b) => (a[1][0] > b[1][0] ? 1 : -1));
-  let result = [];
-  result.push(str.slice(0, indices[0][1][0]));
-  for (let i = 0; i < indices.length; i++) {
-    result.push(indices[i][0]);
-    if (i < indices.length - 1) {
-      result.push(str.slice(indices[i][1][1], indices[i + 1][1][0]));
-    }
-  }
-  result.push(str.slice(indices[indices.length - 1][1][1], str.length));
-  return result.join("");
 }
 
 // regex = new RegExp("A", "gd");
