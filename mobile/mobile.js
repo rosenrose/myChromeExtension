@@ -165,7 +165,8 @@ function textReplace(element) {
             let index = orgZip.indexOf(result[i]);
             replaceText.push(repZip[index]);
           }
-          node.textContent = text.replace(regex, replaceText.join(""));
+          let rest = replace[1].slice(replace[1].lastIndexOf(")") + 1);
+          node.textContent = text.replace(regex, replaceText.join("") + rest);
         } else {
           node.textContent = text.replace(regex, replace[1]);
         }
