@@ -410,15 +410,9 @@ function ruliweb() {
     div.style.borderBottom = "1px solid #90b4e6";
     div.style.borderRight = "1px solid #90b4e6";
   });
-  // document.querySelectorAll("div.article").forEach((div) => {
-  //   div.style.gap = "2rem";
-  // });
   document.querySelectorAll("div.thumbnail_wrapper").forEach((div) => {
     div.style.width = "fit-content";
     div.style.padding = "6px 2rem";
-  });
-  document.querySelectorAll("div.text_wrapper").forEach((div) => {
-    // div.style.width = "80%";
   });
 }
 
