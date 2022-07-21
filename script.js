@@ -399,6 +399,27 @@ function ruliweb() {
   // for (let i=0; i<trs.length; i++) {
   //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
   // }
+  document.querySelectorAll("table.board_list_table td").forEach((td) => {
+    td.style.borderBottom = "none";
+  });
+  document.querySelectorAll("div.flex_wrapper").forEach((div) => {
+    div.style.flexDirection = "column";
+  });
+  document.querySelectorAll("div.article_wrapper").forEach((div) => {
+    div.style.width = "100%";
+    div.style.borderBottom = "1px solid #90b4e6";
+    div.style.borderRight = "1px solid #90b4e6";
+  });
+  // document.querySelectorAll("div.article").forEach((div) => {
+  //   div.style.gap = "2rem";
+  // });
+  document.querySelectorAll("div.thumbnail_wrapper").forEach((div) => {
+    div.style.width = "fit-content";
+    div.style.padding = "6px 2rem";
+  });
+  document.querySelectorAll("div.text_wrapper").forEach((div) => {
+    // div.style.width = "80%";
+  });
 }
 
 function dogdrip() {
@@ -664,14 +685,16 @@ function addNum(start, capicity, select) {
         let banWords = banList.word;
 
         let i = 0;
-        for (let tr of document.querySelectorAll("tr.table_body:not([hidden])")) {
-          let writer = tr.querySelector("a.nick").textContent.trim();
-          let title = tr.querySelector("a.title_wrapper");
+        for (let article of [...document.querySelectorAll("tr.table_body div.article")].filter(
+          (div) => div.style.display != "none"
+        )) {
+          let writer = article.querySelector("a.nick").textContent.trim();
+          let title = article.querySelector("a.title_wrapper");
           title.href = title.href.replace("etcs", "community");
           let link = title.href.split("?")[0];
           let dislike_value = "";
 
-          tr.querySelector("div.thumbnail_wrapper > a").target = "_blank";
+          article.querySelector("div.thumbnail_wrapper > a").target = "_blank";
           title.target = "_blank";
 
           if (
@@ -679,7 +702,7 @@ function addNum(start, capicity, select) {
               (word) => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null
             )
           ) {
-            tr.hidden = true;
+            article.style.display = "none";
             console.log(title, title.firstChild.textContent.trim() + "\n" + writer.slice(0, 2));
             // title.innerHTML+=`${head}←(병신)${tail}`;
           }
@@ -689,14 +712,14 @@ function addNum(start, capicity, select) {
             dislike_value = result.dislike;
 
             if (banCodes.includes(code)) {
-              hide(tr, writer, code, "main");
+              hide(article, writer, code, "main");
             }
           } else if (
             (result = banList.user.find(
               (user) => user.name.includes(writer) && banCodes.includes(user.code)
             ))
           ) {
-            hide(tr, writer, result.code, "main");
+            hide(article, writer, result.code, "main");
           } else {
             // console.log("FETCH", tr);
             if (etc.isFetch) {
@@ -706,7 +729,7 @@ function addNum(start, capicity, select) {
                 dislike_value = dislike;
 
                 if (banCodes.includes(code)) {
-                  hide(tr, writer, code, "main");
+                  hide(article, writer, code, "main");
                 }
                 cache.main.unshift({
                   link,
@@ -720,9 +743,9 @@ function addNum(start, capicity, select) {
             }
           }
 
-          if (tr.hidden) continue;
+          if (article.style.display) continue;
 
-          let a = tr.querySelector("div.text_wrapper a");
+          let a = article.querySelector("div.text_wrapper a");
           a.querySelector("span.mySmall")?.remove();
           if (select == "main") {
             let small = document.createElement("span");
@@ -739,9 +762,9 @@ function addNum(start, capicity, select) {
             a.prepend(small);
             i += 1;
 
-            if (tr.querySelector(".dislike")) continue;
+            if (article.querySelector(".dislike")) continue;
 
-            let recomd = tr.querySelector("span.recomd");
+            let recomd = article.querySelector("span.recomd");
             let dislike = recomd.cloneNode(true);
             dislike.className = "dislike";
             dislike.firstChild.textContent = " 반대 ";
@@ -811,7 +834,7 @@ function addNum(start, capicity, select) {
 
 function hide(elem, writer, code, board) {
   if (board == "main") {
-    elem.hidden = true;
+    elem.style.display = "none";
     let a = elem.querySelector("a.title_wrapper");
     console.log(a, a.firstChild.textContent.trim() + "\n" + writer);
   } else if (board == "top") {
