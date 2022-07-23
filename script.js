@@ -399,20 +399,42 @@ function ruliweb() {
   // for (let i=0; i<trs.length; i++) {
   //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
   // }
-  document.querySelectorAll("table.board_list_table td").forEach((td) => {
-    td.style.borderBottom = "none";
+
+  let sheet = [...document.styleSheets].find((s) =>
+    s.href.startsWith("https://bbs.ruliweb.com/assets/css/style.min.css")
+  );
+  let rules = [...sheet.cssRules];
+  const getRule = (text) => rules.find((r) => r.selectorText == text);
+
+  // document.querySelectorAll("table.board_list_table td").forEach((td) => {
+  //   td.style.borderBottom = "none";
+  // });
+  // document.querySelectorAll("div.flex_wrapper").forEach((div) => {
+  //   div.style.flexDirection = "column";
+  // });
+  // document.querySelectorAll("div.article_wrapper").forEach((div) => {
+  //   div.style.width = "100%";
+  //   div.style.borderBottom = "1px solid #90b4e6";
+  //   div.style.borderRight = "1px solid #90b4e6";
+  // });
+  // document.querySelectorAll("div.thumbnail_wrapper").forEach((div) => {
+  //   div.style.width = "fit-content";
+  //   div.style.padding = "6px 2rem";
+  // });
+  setStyles(getRule(".board_main.theme_default td, .board_main.theme_default .table_body_td"), {
+    "border-bottom": "",
   });
-  document.querySelectorAll("div.flex_wrapper").forEach((div) => {
-    div.style.flexDirection = "column";
+  setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper"), {
+    "flex-direction": "column",
   });
-  document.querySelectorAll("div.article_wrapper").forEach((div) => {
-    div.style.width = "100%";
-    div.style.borderBottom = "1px solid #90b4e6";
-    div.style.borderRight = "1px solid #90b4e6";
+  setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper .flex_item"), {
+    width: "100%",
+    "border-bottom": "1px solid #90b4e6",
+    "border-right": "1px solid #90b4e6",
   });
-  document.querySelectorAll("div.thumbnail_wrapper").forEach((div) => {
-    div.style.width = "fit-content";
-    div.style.padding = "6px 2rem";
+  setStyles(getRule(".board_main.theme_thumbnail .article_wrapper .thumbnail_wrapper"), {
+    width: "fit-content",
+    padding: "6px 2rem",
   });
 }
 
@@ -944,3 +966,11 @@ function randomInt(minInclude, maxExclude) {
 // a.addEventListener("dragend", (e) => console.log(e.type, x, y));
 // a.addEventListener("dragleave", (e) => console.log(e.type));
 // a.addEventListener("dragexit", (e) => console.log(e.type));
+
+function setStyles(elem, args) {
+  Object.entries(args).forEach(([key, val]) => {
+    val.includes("!important")
+      ? elem?.style.setProperty(key, val.replace("!important", ""), "important")
+      : elem?.style.setProperty(key, val);
+  });
+}
