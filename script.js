@@ -422,15 +422,15 @@ function ruliweb() {
   //   div.style.padding = "6px 2rem";
   // });
   setStyles(getRule(".board_main.theme_default td, .board_main.theme_default .table_body_td"), {
-    "border-bottom": "",
+    borderBottom: "",
   });
   setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper"), {
-    "flex-direction": "column",
+    flexDirection: "column",
   });
   setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper .flex_item"), {
     width: "100%",
-    "border-bottom": "1px solid #90b4e6",
-    "border-right": "1px solid #90b4e6",
+    borderBottom: "1px solid #90b4e6",
+    borderRight: "1px solid #90b4e6",
   });
   setStyles(getRule(".board_main.theme_thumbnail .article_wrapper .thumbnail_wrapper"), {
     width: "fit-content",
@@ -968,9 +968,15 @@ function randomInt(minInclude, maxExclude) {
 // a.addEventListener("dragexit", (e) => console.log(e.type));
 
 function setStyles(elem, args) {
+  const regex = /[A-Z]/;
+
   Object.entries(args).forEach(([key, val]) => {
+    if (regex.test(key)) {
+      key = [...key].map((c) => (regex.test(c) ? `-${c.toLowerCase()}` : c)).join("");
+    }
+
     val.includes("!important")
-      ? elem?.style.setProperty(key, val.replace("!important", ""), "important")
-      : elem?.style.setProperty(key, val);
+      ? elem.style.setProperty(key, val.replace("!important", ""), "important")
+      : elem.style.setProperty(key, val);
   });
 }
