@@ -2,8 +2,9 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.sync.get(null, (data) => {
     const initial = {
       etc: {
-        isBoard: false,
-        isFetch: false,
+        isDogdripBoard: false,
+        isRuliwebFetch: false,
+        isYoutubeFetch: false,
       },
       userBoardList: [],
     };

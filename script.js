@@ -196,6 +196,7 @@ function observeCallback(mutationList) {
               }
             });
           }
+
           if (domain == "laftel.net") {
             let inside = document.querySelector(".inside");
             if (inside) {
@@ -207,11 +208,43 @@ function observeCallback(mutationList) {
               span.style.color = "#777";
             });
           }
+          if (domain == "www.youtube.com") {
+            chrome.storage.sync.get("etc", (data) => {
+              if (!data.etc.isYoutubeFetch) {
+                return;
+              }
+
+              document
+                .querySelectorAll("#metadata-line > span.style-scope:nth-child(2)")
+                .forEach(async (span) => {
+                  if (span.dataset.fetched) {
+                    return;
+                  }
+                  if (!span.textContent.trimEnd().endsWith("전")) {
+                    return;
+                  }
+
+                  span.dataset.fetched = true;
+                  let link =
+                    span.closest("a")?.href ||
+                    span.closest("#metadata-container").previousElementSibling.querySelector("a")
+                      .href;
+                  let id = /([\w\-_]{11})/.exec(link)?.[1];
+                  if (id) {
+                    try {
+                      let json = await (
+                        await fetch(
+                          `https://www.googleapis.com/youtube/v3/videos?id=${id}&key=&part=snippet`
+                        )
+                      ).json();
+                      span.textContent = json.items[0].snippet.publishedAt.split("T")[0];
+                    } catch {}
+                  }
+                });
+            });
+          }
         }
 
-        if (domain.includes("dood")) {
-          document.querySelector("#video_player > div.vjs-text-track-display")?.remove();
-        }
         break;
       case "attributes":
         // console.log(mutation.target, mutation.attributeName, mutation.oldValue);
@@ -400,11 +433,11 @@ function ruliweb() {
   //     appendTooltip(trs[i].querySelector("td.subject > a"), i);
   // }
 
-  let sheet = [...document.styleSheets].find((s) =>
-    s.href.startsWith("https://bbs.ruliweb.com/assets/css/style.min.css")
-  );
-  let rules = [...sheet.cssRules];
-  const getRule = (text) => rules.find((r) => r.selectorText == text);
+  // let sheet = [...document.styleSheets].find((s) =>
+  //   s.href.startsWith("https://bbs.ruliweb.com/assets/css/style.min.css")
+  // );
+  // let rules = [...sheet.cssRules];
+  // const getRule = (text) => rules.find((r) => r.selectorText == text);
 
   // document.querySelectorAll("table.board_list_table td").forEach((td) => {
   //   td.style.borderBottom = "none";
@@ -421,21 +454,21 @@ function ruliweb() {
   //   div.style.width = "fit-content";
   //   div.style.padding = "6px 2rem";
   // });
-  setStyles(getRule(".board_main.theme_default td, .board_main.theme_default .table_body_td"), {
-    borderBottom: "",
-  });
-  setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper"), {
-    flexDirection: "column",
-  });
-  setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper .flex_item"), {
-    width: "100%",
-    borderBottom: "1px solid #90b4e6",
-    borderRight: "1px solid #90b4e6",
-  });
-  setStyles(getRule(".board_main.theme_thumbnail .article_wrapper .thumbnail_wrapper"), {
-    width: "fit-content",
-    padding: "6px 2rem",
-  });
+  // setStyles(getRule(".board_main.theme_default td, .board_main.theme_default .table_body_td"), {
+  //   borderBottom: "",
+  // });
+  // setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper"), {
+  //   flexDirection: "column",
+  // });
+  // setStyles(getRule(".board_main.theme_thumbnail .flex_wrapper .flex_item"), {
+  //   width: "100%",
+  //   borderBottom: "1px solid #90b4e6",
+  //   borderRight: "1px solid #90b4e6",
+  // });
+  // setStyles(getRule(".board_main.theme_thumbnail .article_wrapper .thumbnail_wrapper"), {
+  //   width: "fit-content",
+  //   padding: "6px 2rem",
+  // });
 }
 
 function dogdrip() {
@@ -459,7 +492,7 @@ function dogdrip() {
     );
 
     chrome.storage.sync.get(["userBoardList", "etc"], (data) => {
-      if (data.etc.isBoard) {
+      if (data.etc.isDogdripBoard) {
         boardList
           .map((board) => board.parentNode)
           .forEach((parent, i) => {
@@ -738,7 +771,7 @@ function addNum(start, capicity, select) {
             hide(article, writer, result.code, "main");
           } else {
             // console.log("FETCH", tr);
-            if (etc.isFetch) {
+            if (etc.isRuliwebFetch) {
               // await sleep(randomInt(1400, 2000));
               try {
                 let [writer, code, dislike] = await getNameCode(link);
@@ -805,7 +838,7 @@ function addNum(start, capicity, select) {
             } else {
               // console.log("FETCH", tr);
               //getNameCode(item.href, item)//item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
-              if (etc.isFetch) {
+              if (etc.isRuliwebFetch) {
                 await sleep(randomInt(3500, 4500));
                 try {
                   let [writer, code] = await getNameCode(item.href);
