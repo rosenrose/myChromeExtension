@@ -33,6 +33,11 @@
       { "code": "5612758", "name": ["RE100알이백"] },
       { "code": "4537260", "name": ["Ta-B-Ri-S"] },
       {
+        "code": "334402",
+        "memo": "도배",
+        "name": ["ZeroPepsi", "rect", "LewdDevil", "Grogu", "XI", "Mandalorian", "Brit Marling"]
+      },
+      {
         "code": "5394011",
         "name": [
           "dnagos",
@@ -43,11 +48,6 @@
           "로리웹펑크2077",
           "TarTarJelly"
         ]
-      },
-      {
-        "code": "334402",
-        "memo": "도배",
-        "name": ["rect", "LewdDevil", "Grogu", "XI", "Mandalorian", "Brit Marling"]
       },
       { "code": "84374", "memo": "도배", "name": ["smack"] },
       { "code": "4093388", "name": ["Калашникoв"] },
