@@ -66,7 +66,7 @@ document.addEventListener("keyup", (event) => {
 });
 
 document.addEventListener("contextmenu", (event) => {
-  console.log(event.target);
+  // console.log(event.target);
   contextMenuElement = event.target;
 });
 
@@ -180,6 +180,10 @@ function observeCallback(mutationList) {
 
         if (domain == "namu.wiki") {
           namu();
+        } else if (domain == "map.kakao.com") {
+          document.querySelectorAll(".name, .placename, .address, p.old").forEach((elem) => {
+            elem.style.color = "#777";
+          });
         } else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
           textReplace(mutation.target);
           // replaceDeubg(mutation.target);
@@ -203,20 +207,19 @@ function observeCallback(mutationList) {
               inside.hidden = true;
             }
           }
-          if (domain == "map.kakao.com") {
-            document.querySelectorAll("span.name, strong.placename, p.old").forEach((span) => {
-              span.style.color = "#777";
-            });
-          }
+
           if (domain == "www.youtube.com") {
             chrome.storage.sync.get("etc", (data) => {
               if (!data.etc.isYoutubeFetch) {
                 return;
               }
 
+              let regex = /([\w\-_]{11})/;
               document
-                .querySelectorAll("#metadata-line > span.style-scope:nth-child(2)")
-                .forEach(async (span) => {
+                .querySelectorAll(
+                  "#metadata-line > span.style-scope:nth-child(2):not([data-fetched])"
+                )
+                .forEach((span) => {
                   if (span.dataset.fetched) {
                     return;
                   }
@@ -229,22 +232,24 @@ function observeCallback(mutationList) {
                     span.closest("a")?.href ||
                     span.closest("#metadata-container").previousElementSibling.querySelector("a")
                       .href;
-                  let id = /([\w\-_]{11})/.exec(link)?.[1];
-                  if (id) {
-                    try {
-                      let json = await (
-                        await fetch(
-                          `https://www.googleapis.com/youtube/v3/videos?id=${id}&key=&part=snippet`
-                        )
-                      ).json();
-                      span.textContent = json.items[0].snippet.publishedAt.split("T")[0];
-                    } catch {}
+                  let id = regex.exec(link)?.[1];
+
+                  if (!id) {
+                    return;
                   }
+
+                  fetch(`https://www.googleapis.com/youtube/v3/videos?id=${id}&key=&part=snippet`)
+                    .then((r) => r.json())
+                    .then(
+                      (json) => new Promise((resolve) => resolve([json.items[0].snippet, span]))
+                    )
+                    .then(([snippet, span]) => {
+                      span.textContent = snippet.publishedAt.split("T")[0];
+                    });
                 });
             });
           }
         }
-
         break;
       case "attributes":
         // console.log(mutation.target, mutation.attributeName, mutation.oldValue);
@@ -450,10 +455,17 @@ function ruliweb() {
   //   div.style.borderBottom = "1px solid #90b4e6";
   //   div.style.borderRight = "1px solid #90b4e6";
   // });
-  // document.querySelectorAll("div.thumbnail_wrapper").forEach((div) => {
-  //   div.style.width = "fit-content";
-  //   div.style.padding = "6px 2rem";
-  // });
+  document.querySelectorAll("div.thumbnail_wrapper").forEach((div) => {
+    // div.style.width = "fit-content";
+    // div.style.padding = "6px 2rem";
+    let a = div.querySelector(".thumbnail");
+    if (!a) return;
+
+    let src = a.style.backgroundImage;
+    src = /url\s?\([\s'"]?(.+?)[\s'"]?\)/.exec(src)?.[1];
+    src = src?.replace("thumb", "ori");
+    a.href = src;
+  });
   // setStyles(getRule(".board_main.theme_default td, .board_main.theme_default .table_body_td"), {
   //   borderBottom: "",
   // });
@@ -743,7 +755,10 @@ function addNum(start, capicity, select) {
           let link = title.href.split("?")[0];
           let dislike_value = "";
 
-          article.querySelector("div.thumbnail_wrapper > a").target = "_blank";
+          let thumb = article.querySelector("div.thumbnail_wrapper > a");
+          if (thumb) {
+            thumb.target = "_blank";
+          }
           title.target = "_blank";
 
           if (
