@@ -11,7 +11,7 @@ fetch("https://gist.github.com/rosenrose/20537c90ffbdcae3e3b44eaffbf44b1e")
     });
   });
 
-fetch("https://raw.githubusercontent.com/rosenrose/myChromeExtension/master/backup.json")
+fetch("https://gist.githubusercontent.com/rosenrose/ecb5fa01af72532c23378e38b9fdb7d3/raw/")
   .then((response) => response.json())
   .then((json) => {
     let banUser = json[0].user;
