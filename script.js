@@ -180,75 +180,86 @@ function observeCallback(mutationList) {
 
         if (domain == "namu.wiki") {
           namu();
-        } else if (domain == "map.kakao.com") {
-          document.querySelectorAll(".name, .placename, .address, p.old").forEach((elem) => {
-            elem.style.color = "#777";
-          });
-        } else if (!replaceJson["domainExcept"].slice(1).includes(domain)) {
-          textReplace(mutation.target);
-          // replaceDeubg(mutation.target);
+          return;
+        }
+        if (replaceJson["domainExcept"].slice(1).includes(domain)) {
+          return;
+        }
 
-          if (domain == "dcinside.com") {
-            document.querySelectorAll(".written_dccon").forEach((con) => {
-              let check = con
-                .getAttributeNames()
-                .map((attr) => con.getAttribute(attr))
-                .filter((a) => a != "");
-              if (check.some((c) => replaceJson["ilbeCon"].includes(c))) {
-                con.parentNode.remove();
-                // console.log(con.getAttributeNames());
-              }
-            });
-          }
+        textReplace(mutation.target);
+        // replaceDeubg(mutation.target);
 
-          if (domain == "laftel.net") {
-            let inside = document.querySelector(".inside");
-            if (inside) {
-              inside.hidden = true;
+        if (domain == "dcinside.com") {
+          document.querySelectorAll(".written_dccon").forEach((con) => {
+            let check = con
+              .getAttributeNames()
+              .map((attr) => con.getAttribute(attr))
+              .filter((a) => a != "");
+            if (check.some((c) => replaceJson["ilbeCon"].includes(c))) {
+              con.parentNode.remove();
+              // console.log(con.getAttributeNames());
             }
+          });
+          return;
+        }
+
+        if (domain == "laftel.net") {
+          let inside = document.querySelector(".inside");
+          if (inside) {
+            inside.hidden = true;
           }
+          return;
+        }
 
-          if (domain == "www.youtube.com") {
-            chrome.storage.sync.get("etc", (data) => {
-              if (!data.etc.isYoutubeFetch) {
-                return;
-              }
+        if (domain == "www.youtube.com") {
+          chrome.storage.sync.get("etc", (data) => {
+            if (!data.etc.isYoutubeFetch) {
+              return;
+            }
 
-              let regex = /([\w\-_]{11})/;
-              document
-                .querySelectorAll(
-                  "#metadata-line > span.style-scope:nth-child(2):not([data-fetched])"
+            let regex = /([\w\-_]{11})/;
+            document
+              .querySelectorAll(
+                "#metadata-line > span.style-scope:nth-child(2):not([data-fetched])"
+              )
+              .forEach((span) => {
+                if (span.dataset.fetched) {
+                  return;
+                }
+                if (!span.textContent.trimEnd().endsWith("전")) {
+                  return;
+                }
+
+                span.dataset.fetched = true;
+                let link =
+                  span.closest("a")?.href ||
+                  span.closest("#metadata-container").previousElementSibling.querySelector("a")
+                    .href;
+                let id = regex.exec(link)?.[1];
+
+                if (!id) {
+                  return;
+                }
+
+                fetch(
+                  `https://www.googleapis.com/youtube/v3/videos?id=${id}&key=${data.etc.youtubeAPI}&part=snippet`
                 )
-                .forEach((span) => {
-                  if (span.dataset.fetched) {
-                    return;
-                  }
-                  if (!span.textContent.trimEnd().endsWith("전")) {
-                    return;
-                  }
+                  .then((r) => r.json())
+                  .then((json) => new Promise((resolve) => resolve([json.items[0].snippet, span])))
+                  .then(([snippet, span]) => {
+                    span.textContent = snippet.publishedAt.split("T")[0];
+                  });
+              });
+          });
 
-                  span.dataset.fetched = true;
-                  let link =
-                    span.closest("a")?.href ||
-                    span.closest("#metadata-container").previousElementSibling.querySelector("a")
-                      .href;
-                  let id = regex.exec(link)?.[1];
-
-                  if (!id) {
-                    return;
-                  }
-
-                  fetch(`https://www.googleapis.com/youtube/v3/videos?id=${id}&key=&part=snippet`)
-                    .then((r) => r.json())
-                    .then(
-                      (json) => new Promise((resolve) => resolve([json.items[0].snippet, span]))
-                    )
-                    .then(([snippet, span]) => {
-                      span.textContent = snippet.publishedAt.split("T")[0];
-                    });
-                });
-            });
+          let heatMap = document.querySelector(
+            "#movie_player > div.ytp-chrome-bottom > div.ytp-progress-bar-container > div.ytp-heat-map-container > div.ytp-heat-map-chapter"
+          );
+          if (heatMap && !heatMap.style.backgroundColor) {
+            heatMap.style.backgroundColor = "black";
+            heatMap.querySelector("svg > rect.ytp-heat-map-graph")?.setAttribute("fill-opacity", 1);
           }
+          return;
         }
         break;
       case "attributes":
@@ -540,6 +551,10 @@ function dogdrip() {
   // for (let li of document.querySelector("ul.eq.widget.widget-normal").querySelectorAll("li")) {
   //     appendTooltip(li.querySelector("a"));
   // }
+  let sheet = [...document.styleSheets].find((sheet) => sheet.href.includes("equeer"));
+  let rule = [...sheet.cssRules].find((rule) => rule.selectorText == ".eq.widget-normal > li");
+  // console.log(sheet, rule);
+  rule.style.borderBottomStyle = "";
 }
 
 function namu() {
@@ -761,6 +776,11 @@ function addNum(start, capicity, select) {
           }
           title.target = "_blank";
 
+          let board = article.querySelector("div.article_info > a");
+          if (board && board.title == "원신") {
+            article.style.display = "none";
+          }
+
           if (
             banWords.some(
               (word) => title.textContent.trim().toLowerCase().match(new RegExp(word)) != null
@@ -854,7 +874,7 @@ function addNum(start, capicity, select) {
               // console.log("FETCH", tr);
               //getNameCode(item.href, item)//item을 넘기지 않으면 의도한 item과 프라미스가 실행될 시점의 item이 일치하지 않음 (스코프 문제)
               if (etc.isRuliwebFetch) {
-                await sleep(randomInt(3500, 4500));
+                // await sleep(randomInt(3500, 4500));
                 try {
                   let [writer, code] = await getNameCode(item.href);
                   if (banCodes.includes(code)) {
