@@ -78,7 +78,12 @@ if (domain == "m.ruliweb.com") {
       }
 
       let title = tr.querySelector(".subject .title");
-      if (data.banWords.some((word) => title?.textContent.includes(word))) {
+      let board = tr.querySelector(".subject .board_name");
+      if (
+        data.banWords.some(
+          (word) => title?.textContent.includes(word) || board?.textContent.includes(word)
+        )
+      ) {
         tr.style.display = "none";
       }
     });
