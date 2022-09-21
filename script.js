@@ -81,18 +81,20 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   }
   console.log(input);
 
-  navigator.clipboard.read().then((data) => {
-    data[0].getType("image/png").then((blob) => {
+  navigator.clipboard
+    .read()
+    .then((data) => data[0].getType("image/png"))
+    .then((blob) => {
       let datatransfer = new DataTransfer();
       datatransfer.items.add(new File([blob], "image.png", { type: blob.type }));
-      input.files = datatransfer.files;
 
+      input.files = datatransfer.files;
       input.dispatchEvent(new InputEvent("change"), { bubbles: true });
+
       try {
         reactTriggerChange(input);
       } catch {}
     });
-  });
 });
 
 chrome.storage.local.get("replace", (data) => {
@@ -252,13 +254,14 @@ function observeCallback(mutationList) {
               });
           });
 
-          let heatMap = document.querySelector(
-            "#movie_player > div.ytp-chrome-bottom > div.ytp-progress-bar-container > div.ytp-heat-map-container > div.ytp-heat-map-chapter"
-          );
-          if (heatMap && !heatMap.style.backgroundColor) {
+          let heatMaps = document.querySelectorAll("div.ytp-heat-map-chapter");
+          heatMaps.forEach((heatMap) => {
+            if (heatMap.style.backgroundColor) {
+              return;
+            }
             heatMap.style.backgroundColor = "black";
             heatMap.querySelector("svg > rect.ytp-heat-map-graph")?.setAttribute("fill-opacity", 1);
-          }
+          });
           return;
         }
         break;
