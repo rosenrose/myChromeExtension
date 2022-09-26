@@ -50,7 +50,7 @@ document.addEventListener("keydown", (event) => {
       short();
     }
   } else if (key.toLowerCase() == "q" && event.ctrlKey) {
-    window.open(document.URL);
+    event.shiftKey ? window.open(location.origin) : window.open(location.href);
   } else if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") {
     window.history.back();
   }
