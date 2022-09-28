@@ -56,7 +56,7 @@ document.addEventListener("keydown", (event) => {
             .read()
             .then((data) => data[0].getType("text/plain"))
             .then((blob) => blob.text())
-            .then((text) => window.open(text))
+            .then((text) => window.open(text.startsWith("http") ? text : `https://${text}`))
         : window.open(location.origin)
       : window.open(location.href);
   } else if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") {
