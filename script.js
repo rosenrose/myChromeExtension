@@ -262,7 +262,7 @@ function observeCallback(mutationList) {
               });
           });
 
-          let heatMaps = document.querySelectorAll("div.ytp-heat-map-chapter");
+          let heatMaps = document.querySelectorAll(".ytp-heat-map-chapter");
           heatMaps.forEach((heatMap) => {
             if (heatMap.style.backgroundColor) {
               return;
@@ -270,6 +270,7 @@ function observeCallback(mutationList) {
             heatMap.style.backgroundColor = "black";
             heatMap.querySelector("svg > rect.ytp-heat-map-graph")?.setAttribute("fill-opacity", 1);
           });
+          document.querySelector(".ytp-gradient-bottom")?.remove();
           return;
         }
         break;
