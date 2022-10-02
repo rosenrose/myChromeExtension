@@ -60,6 +60,10 @@ document.addEventListener("keydown", (event) => {
         : window.open(location.origin)
       : window.open(location.href);
   } else if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") {
+    // console.log(key);
+    if (domain == "news.hada.io") {
+      return;
+    }
     window.history.back();
   }
 });
