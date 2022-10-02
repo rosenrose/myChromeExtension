@@ -16,6 +16,7 @@ sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 document.addEventListener("keydown", (event) => {
   let [key, code] = [event.key, event.code];
+  let isModifier = event.shiftKey || event.altKey || event.ctrlKey;
   // console.log(key, code, "shift", event.shiftKey, "alt", event.altKey, "ctrl", event.ctrlKey);
 
   if (event.target.matches("input, textarea")) {
@@ -37,7 +38,7 @@ document.addEventListener("keydown", (event) => {
         window.open(shortcut[num], "_blank");
       }
     }
-  } else if (shortcut[key.toLowerCase()] && !event.ctrlKey) {
+  } else if (shortcut[key.toLowerCase()] && !isModifier) {
     let short = shortcut[key.toLowerCase()];
 
     if (typeof short == "object") {
@@ -49,16 +50,18 @@ document.addEventListener("keydown", (event) => {
     } else if (typeof short == "function") {
       short();
     }
-  } else if (key.toLowerCase() == "q" && event.ctrlKey) {
-    event.shiftKey
-      ? event.altKey
-        ? navigator.clipboard
-            .read()
-            .then((data) => data[0].getType("text/plain"))
-            .then((blob) => blob.text())
-            .then((text) => window.open(text.startsWith("http") ? text : `https://${text}`))
-        : window.open(location.origin)
-      : window.open(location.href);
+  } else if (key.toLowerCase() == "q" && isModifier) {
+    if (event.ctrlKey) {
+      window.open(location.href);
+    } else if (event.shiftKey) {
+      window.open(location.origin);
+    } else if (event.altKey) {
+      navigator.clipboard
+        .read()
+        .then((data) => data[0].getType("text/plain"))
+        .then((blob) => blob.text())
+        .then((text) => window.open(text.startsWith("http") ? text : `https://${text}`));
+    }
   } else if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") {
     // console.log(key);
     if (domain == "news.hada.io") {
