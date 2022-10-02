@@ -15,58 +15,79 @@ regexMap = {};
 sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 document.addEventListener("keydown", (event) => {
+  if (event.target.matches("input, textarea")) {
+    return;
+  }
+
   let [key, code] = [event.key, event.code];
   let isModifier = event.shiftKey || event.altKey || event.ctrlKey;
   // console.log(key, code, "shift", event.shiftKey, "alt", event.altKey, "ctrl", event.ctrlKey);
 
-  if (event.target.matches("input, textarea")) {
-    return;
-  }
   if (code.startsWith("Digit") || code.startsWith("Numpad")) {
     let input = parseInt(code.slice(-1));
     let num = (input + 9) % 10;
 
     if (event.shiftKey || (!event.shiftKey && input != key)) {
-      //쉬프트+일반 || 쉬프트+넘패드
+      // 쉬프트+일반 || 쉬프트+넘패드
       num += 10;
     }
 
-    if (shortcut[num]) {
-      if (event.altKey) {
-        alt.add(shortcut[num]);
-      } else {
-        window.open(shortcut[num], "_blank");
-      }
+    if (!shortcut[num]) {
+      return;
     }
-  } else if (shortcut[key.toLowerCase()] && !isModifier) {
+
+    event.altKey ? alt.add(shortcut[num]) : window.open(shortcut[num], "_blank");
+
+    return;
+  }
+
+  if (shortcut[key.toLowerCase()] && !isModifier) {
     let short = shortcut[key.toLowerCase()];
 
     if (typeof short == "object") {
       if ("target" in short) {
         window.open(short.url, short.target);
-      } else {
-        window.location = short.url;
+        return;
       }
-    } else if (typeof short == "function") {
+
+      window.location = short.url;
+      return;
+    }
+
+    if (typeof short == "function") {
       short();
     }
-  } else if (key.toLowerCase() == "q" && isModifier) {
+
+    return;
+  }
+
+  if (key.toLowerCase() == "q" && isModifier) {
     if (event.ctrlKey) {
       window.open(location.href);
-    } else if (event.shiftKey) {
+      return;
+    }
+
+    if (event.shiftKey) {
       window.open(location.origin);
-    } else if (event.altKey) {
+      return;
+    }
+
+    if (event.altKey) {
       navigator.clipboard
         .read()
         .then((data) => data[0].getType("text/plain"))
         .then((blob) => blob.text())
         .then((text) => window.open(text.startsWith("http") ? text : `https://${text}`));
     }
-  } else if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") {
-    // console.log(key);
+
+    return;
+  }
+
+  if (key == "Backspace" && event.target.matches("body") && document.designMode == "off") {
     if (domain == "news.hada.io") {
       return;
     }
+
     window.history.back();
   }
 });
