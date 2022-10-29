@@ -244,7 +244,11 @@ function observeCallback(mutationList) {
             video.style.height = `${height}px`;
             video.style.margin = 0;
 
-            // let body = cctv.closest("div.body");
+            let body = cctv.closest("div.body");
+            let infoWindow = cctv.closest("div.InfoWindow");
+            infoWindow.style.left = `-${width / 2}px`;
+            infoWindow.style.top = `-${body.clientHeight / 2}px`;
+
             // body.style.width = `${width}px`;
             // body.style.height = `${
             //   height +
@@ -1071,6 +1075,14 @@ function getNameCode(link, option) {
         let writer = doc.querySelector("strong.nick").textContent.trim();
         let code = doc.querySelector("#member_srl").value;
         let dislike = doc.querySelector(".dislike_value").textContent.trim();
+        // let title = [...doc.querySelector(".member_title").childNodes]
+        //   .filter((node) => node.nodeName === "#text")
+        //   .map((node) => node.textContent)
+        //   .join("")
+        //   .trim();
+        // if (title.includes("초심자") && title.includes("추천흡수기")) {
+        //   console.log(title, link);
+        // }
         if (option) {
           return [writer, code, dislike, option];
         } else {
