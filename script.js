@@ -220,6 +220,85 @@ function observeCallback(mutationList) {
           namu();
           return;
         }
+
+        if (domain == "map.kakao.com") {
+          let cctv = document.querySelector("div.cctv_video_target");
+
+          if (cctv) {
+            let width = window.cctvWidth || 1280;
+            // console.log(cctv.videoWidth, cctv.videoHeight);
+            // cctv.addEventListener("loadded", () => {
+            //   let { videoWidth, videoHeight } = cctv;
+            //   let multiple = width / videoWidth;
+            //   let height = videoHeight * multiple;
+
+            // });
+            let height = window.cctvHeight || 720;
+
+            cctv.style.width = `${width}px`;
+            cctv.style.height = `${height}px`;
+
+            let video = cctv.querySelector("video");
+
+            video.style.width = `${width}px`;
+            video.style.height = `${height}px`;
+            video.style.margin = 0;
+
+            // let body = cctv.closest("div.body");
+            // body.style.width = `${width}px`;
+            // body.style.height = `${
+            //   height +
+            //   [...body.querySelectorAll(":scope > *:not(.cctv_video_target):not(.cctvDimmed)")]
+            //     .map((elem) => elem.clientHeight)
+            //     .reduce((a, b) => a + b)
+            // }px`;
+
+            if (!cctv.querySelector("input[type='range']")) {
+              let range = document.createElement("input");
+              range.type = "range";
+              range.min = 360;
+              range.max = 1920;
+              range.step = 8;
+              range.value = width;
+              range.id = "videoSize";
+              range.dataset.size = `${width}x${height}`;
+
+              range.addEventListener("input", () => {
+                let width = range.value;
+                let height = (range.value * 9) / 16;
+                window.cctvWidth = width;
+                window.cctvHeight = height;
+
+                cctv.style.width = `${width}px`;
+                cctv.style.height = `${height}px`;
+                video.style.width = `${width}px`;
+                video.style.height = `${height}px`;
+                range.dataset.size = `${width}x${height}`;
+              });
+
+              cctv.prepend(range);
+
+              let rangeCss = `
+                #${range.id} {
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                }
+                #${range.id}::after {
+                  content: attr(data-size);
+                  position: absolute;
+                  right: -4rem;
+                }
+              `;
+
+              let rangeStyle = document.createElement("style");
+              rangeStyle.textContent = rangeCss;
+
+              document.head.append(rangeStyle);
+            }
+          }
+        }
+
         if (replaceJson["domainExcept"].slice(1).includes(domain)) {
           return;
         }
@@ -301,6 +380,7 @@ function observeCallback(mutationList) {
           document.querySelector(".ytp-gradient-bottom")?.remove();
           return;
         }
+
         break;
       case "attributes":
         // console.log(mutation.target, mutation.attributeName, mutation.oldValue);
@@ -310,7 +390,15 @@ function observeCallback(mutationList) {
             mutation.target.querySelector("a").target = "_blank";
             console.log(mutation.target.querySelector("a"));
           }
+          return;
         }
+
+        if (domain == "map.kakao.com") {
+          if (mutation.target.matches(".cctvDimmed:not(.HIDDEN)")) {
+            mutation.target.querySelector("a.play").click();
+          }
+        }
+
         break;
     }
   });
