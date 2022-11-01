@@ -293,6 +293,9 @@ function observeCallback(mutationList) {
                   position: absolute;
                   right: -4rem;
                 }
+                .InfoWindow.InfoWindow:after {
+                  background: none;
+                }
               `;
 
               let rangeStyle = document.createElement("style");
@@ -955,18 +958,24 @@ function addNum(start, capicity, select) {
                 });
                 cache.main.pop();
                 chrome.storage.local.set({ cache: cache }, () => {});
-              } catch (ex) {}
+              } catch (ex) {
+                console.error(ex);
+              }
             }
           }
 
-          if (article.style.display) continue;
+          if (article.style.display) {
+            continue;
+          }
 
           let a = article.querySelector("div.text_wrapper a");
           a.querySelector("span.mySmall")?.remove();
+
           if (select == "main") {
             let small = document.createElement("span");
             small.className = "mySmall";
             small.style.fontSize = "small";
+
             if (i < 20) {
               small.textContent = `[${i + 1}] `;
               shortcut[i] = a.href;
@@ -974,11 +983,14 @@ function addNum(start, capicity, select) {
               small.textContent = `[${numMap[i].toUpperCase()}] `;
               shortcut[numMap[i]] = { url: a.href, target: "_blank" };
             }
+
             small.style.fontSize = "small";
             a.prepend(small);
             i += 1;
 
-            if (article.querySelector(".dislike")) continue;
+            if (article.querySelector(".dislike")) {
+              continue;
+            }
 
             let recomd = article.querySelector("span.recomd");
             let dislike = recomd.cloneNode(true);
@@ -1071,8 +1083,9 @@ function getNameCode(link, option) {
     .then((response) => response.text())
     .then((content) => {
       let doc = new DOMParser().parseFromString(content, "text/html");
+
       try {
-        let writer = doc.querySelector("strong.nick").textContent.trim();
+        let writer = doc.querySelector(".nick").textContent.trim();
         let code = doc.querySelector("#member_srl").value;
         let dislike = doc.querySelector(".dislike_value").textContent.trim();
         // let title = [...doc.querySelector(".member_title").childNodes]
