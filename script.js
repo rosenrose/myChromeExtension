@@ -961,7 +961,9 @@ function addNum(start, capicity, select) {
               // await sleep(randomInt(1400, 2000));
               try {
                 let [writer, code, dislike] = await getNameCode(link);
-                dislike_value = dislike;
+                if (!isNaN(dislike)) {
+                  dislike_value = dislike;
+                }
 
                 if (banCodes.includes(code)) {
                   hide(article, writer, code, "main", true);
@@ -1009,12 +1011,16 @@ function addNum(start, capicity, select) {
             }
 
             let recomd = article.querySelector("span.recomd");
-            let dislike = recomd.cloneNode(true);
-            dislike.className = "dislike";
-            dislike.firstChild.textContent = " 반대 ";
-            dislike.querySelector("strong").textContent = dislike_value;
-            dislike.querySelector("strong").style.color = dislike_value >= 5 ? "red" : "";
-            recomd.after(dislike);
+
+            if (!isNaN(dislike_value)) {
+              let dislike = recomd.cloneNode(true);
+              dislike.className = "dislike";
+              dislike.firstChild.textContent = " 반대 ";
+              dislike.querySelector("strong").textContent = dislike_value;
+              dislike.querySelector("strong").style.color = dislike_value >= 5 ? "red" : "";
+
+              recomd.after(dislike);
+            }
           }
         }
 
@@ -1125,7 +1131,7 @@ function getNameCode(link, option) {
       try {
         let writer = doc.querySelector(".nick").textContent.trim();
         let code = doc.querySelector("#member_srl").value;
-        let dislike = doc.querySelector(".dislike_value").textContent.trim();
+        let dislike = doc.querySelector(".dislike_value")?.textContent.trim();
         let board_name = doc.querySelector("#board_name").textContent.trim();
         // let title = [...doc.querySelector(".member_title").childNodes]
         //   .filter((node) => node.nodeName === "#text")
@@ -1141,6 +1147,7 @@ function getNameCode(link, option) {
           return [writer, code, dislike, board_name];
         }
       } catch (error) {
+        console.error(error);
         return null;
       }
     });
