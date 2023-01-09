@@ -324,6 +324,9 @@ function observeCallback(mutationList) {
               // console.log(con.getAttributeNames());
             }
           });
+
+          document.querySelector(".moveimg")?.remove();
+
           return;
         }
 
@@ -556,9 +559,11 @@ function ruliweb() {
     if (link) {
       getNameCode(link).then(([writer, code]) => {
         console.log([writer, code]);
+
         if (writer && code) {
           let idx = banList.user.findIndex((user) => user.code == code);
           console.log(banList);
+
           if ((memo = prompt([writer, code]))) {
             if (idx > -1) {
               console.log([banList.user[idx].name, writer, code]);
@@ -570,7 +575,9 @@ function ruliweb() {
                 memo: memo.trim(),
               });
             }
+
             banList.user.sort((a, b) => (a.name[0] > b.name[0] ? 1 : -1));
+
             chrome.storage.local.set({ banList: banList }, () => {
               console.log(banList);
               window.location.reload();
@@ -674,6 +681,7 @@ function dogdrip() {
       let a = tr.querySelector("td.title a.ed");
       a.target = "_blank";
       let small = tr.querySelector("td.no");
+
       if (i < 20) {
         small.textContent += `[${i + 1}] `;
         shortcut[i] = a.href;
@@ -719,6 +727,7 @@ function namu() {
 
   if (url.pathname.startsWith("/history")) {
     xpath = "//a[text() = '비교']/../../..";
+
     let ul = document.evaluate(
       xpath,
       document,
@@ -726,10 +735,12 @@ function namu() {
       XPathResult.FIRST_ORDERED_NODE_TYPE,
       null
     ).singleNodeValue;
+
     ul?.querySelectorAll("li").forEach((li) => {
       let id = li.querySelector("div");
       let a = id.querySelector("a");
       a.target = "_blank";
+
       if (["180.224.237.249", "49.171.158.105"].includes(id.textContent.trim())) {
         a.style["text-decoration"] = "line-through";
         li.querySelectorAll(":scope > span")[2].textContent = "";
@@ -737,6 +748,7 @@ function namu() {
     });
   } else if (url.pathname == "/member/starred_documents") {
     xpath = "//li[contains(text(), '수정시각')]/..";
+
     let ul = document.evaluate(
       xpath,
       document,
@@ -744,6 +756,7 @@ function namu() {
       XPathResult.FIRST_ORDERED_NODE_TYPE,
       null
     ).singleNodeValue;
+
     ul?.querySelectorAll("li > a").forEach((a) => {
       a.href = a.href.replace("/w/", "/history/");
       a.target = "_blank";
@@ -854,6 +867,7 @@ function addNum(start, capicity, select) {
             let small = document.createElement("span");
             small.className = "mySmall";
             small.textContent = ` [${i - start + 1}]`;
+
             tr.querySelector("td").append(small);
             shortcut[i - start] = a.href;
           }
@@ -888,10 +902,12 @@ function addNum(start, capicity, select) {
       chrome.storage.local.get(["banList", "cache", "etc"], async (data) => {
         banList = data.banList;
         cache = data.cache;
+
         syncData = await new Promise((resolve) => {
           chrome.storage.sync.get("etc", resolve);
         });
         etc = syncData.etc;
+
         let banCodes = banList.user.map((user) => user.code);
         let banWords = banList.word;
 
@@ -931,14 +947,14 @@ function addNum(start, capicity, select) {
             dislike_value = result.dislike;
 
             if (banCodes.includes(code)) {
-              hide(article, writer, code, "main");
+              hide(article, writer, code, "main", true);
             }
           } else if (
             (result = banList.user.find(
               (user) => user.name.includes(writer) && banCodes.includes(user.code)
             ))
           ) {
-            hide(article, writer, result.code, "main");
+            hide(article, writer, result.code, "main", true);
           } else {
             // console.log("FETCH", tr);
             if (etc.isRuliwebFetch) {
@@ -948,7 +964,7 @@ function addNum(start, capicity, select) {
                 dislike_value = dislike;
 
                 if (banCodes.includes(code)) {
-                  hide(article, writer, code, "main");
+                  hide(article, writer, code, "main", true);
                 }
                 cache.main.unshift({
                   link,
@@ -1005,14 +1021,17 @@ function addNum(start, capicity, select) {
         let best = document.querySelector("div.list.best_date.active");
         if (best) {
           i = 0;
+
           for (let item of best.querySelectorAll("a.deco")) {
             if (item.textContent == "()") continue;
 
             item.target = "_blank";
+
             if ((result = cache.top.find((top) => top.link == item.href))) {
               let [writer, code] = result.info;
+
               if (banCodes.includes(code)) {
-                hide(item, writer, code, "top");
+                hide(item, writer, code, "top", true);
               }
             } else {
               // console.log("FETCH", tr);
@@ -1020,15 +1039,21 @@ function addNum(start, capicity, select) {
               if (etc.isRuliwebFetch) {
                 // await sleep(randomInt(3500, 4500));
                 try {
-                  let [writer, code] = await getNameCode(item.href);
+                  let [writer, code, _, board_name] = await getNameCode(item.href);
+
                   if (banCodes.includes(code)) {
-                    hide(item, writer, code, "top");
+                    hide(item, writer, code, "top", true);
                   }
+                  if (board_name == "분리수거") {
+                    hide(item, writer, code, "top", false);
+                  }
+
                   cache.top.unshift({
                     link: item.href,
                     info: [writer, code],
                     title: item.textContent.trim(),
                   });
+
                   cache.top.pop();
                   chrome.storage.local.set({ cache: cache }, () => {});
                 } catch (ex) {}
@@ -1039,10 +1064,12 @@ function addNum(start, capicity, select) {
 
             item.querySelector("span.mySmall")?.remove();
             item.textContent = item.textContent.replace(/^\d+\. /, "");
+
             if (select == "top") {
               let small = document.createElement("span");
               small.className = "mySmall";
               small.style.fontSize = "small";
+
               if (i < 20) {
                 small.textContent = `[${i + 1}] `;
                 shortcut[i] = item.href;
@@ -1050,31 +1077,39 @@ function addNum(start, capicity, select) {
                 small.textContent = `[${numMap[i].toUpperCase()}] `;
                 shortcut[numMap[i]] = { url: item.href, target: "_blank" };
               }
+
               item.prepend(small);
             }
+
             i += 1;
           }
         }
       });
+
       break;
   }
 }
 
-function hide(elem, writer, code, board) {
+function hide(elem, writer, code, board, isSave) {
   if (board == "main") {
     elem.style.display = "none";
     let a = elem.querySelector("a.title_wrapper");
+
     console.log(a, a.firstChild.textContent.trim() + "\n" + writer);
   } else if (board == "top") {
     elem.innerHTML = `${head}()${tail}`;
     console.log(elem, writer);
   }
 
-  let user = banList.user.find((user) => user.code == code);
-  if (!user.name.includes(writer)) {
-    user.name.unshift(writer);
-    alert(`${writer} ${code}`);
-    chrome.storage.local.set({ banList: banList }, () => {});
+  if (isSave) {
+    let user = banList.user.find((user) => user.code == code);
+
+    if (!user.name.includes(writer)) {
+      user.name.unshift(writer);
+      alert(`${writer} ${code}`);
+
+      chrome.storage.local.set({ banList: banList }, () => {});
+    }
   }
 }
 
@@ -1088,6 +1123,7 @@ function getNameCode(link, option) {
         let writer = doc.querySelector(".nick").textContent.trim();
         let code = doc.querySelector("#member_srl").value;
         let dislike = doc.querySelector(".dislike_value").textContent.trim();
+        let board_name = doc.querySelector("#board_name").textContent.trim();
         // let title = [...doc.querySelector(".member_title").childNodes]
         //   .filter((node) => node.nodeName === "#text")
         //   .map((node) => node.textContent)
@@ -1097,9 +1133,9 @@ function getNameCode(link, option) {
         //   console.log(title, link);
         // }
         if (option) {
-          return [writer, code, dislike, option];
+          return [writer, code, dislike, board_name, option];
         } else {
-          return [writer, code, dislike];
+          return [writer, code, dislike, board_name];
         }
       } catch (error) {
         return null;
