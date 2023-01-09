@@ -1028,10 +1028,13 @@ function addNum(start, capicity, select) {
             item.target = "_blank";
 
             if ((result = cache.top.find((top) => top.link == item.href))) {
-              let [writer, code] = result.info;
+              let [writer, code, board_name] = result.info;
 
               if (banCodes.includes(code)) {
                 hide(item, writer, code, "top", true);
+              }
+              if (board_name == "분리수거") {
+                hide(item, writer, code, "top", false);
               }
             } else {
               // console.log("FETCH", tr);
@@ -1050,7 +1053,7 @@ function addNum(start, capicity, select) {
 
                   cache.top.unshift({
                     link: item.href,
-                    info: [writer, code],
+                    info: [writer, code, board_name],
                     title: item.textContent.trim(),
                   });
 
