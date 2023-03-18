@@ -343,30 +343,30 @@ function observeCallback(mutationList) {
             if (!data.etc.isYoutubeFetch) {
               return;
             }
+            if (!("fetched" in window)) {
+              window.fetched = new Set();
+            }
 
             let regex = /([\w\-_]{11})/;
+
             document
-              .querySelectorAll(
-                "#metadata-line > span.style-scope:nth-child(2):not([data-fetched])"
-              )
+              .querySelectorAll("#metadata-line > span.style-scope:nth-child(4)")
               .forEach((span) => {
-                if (span.dataset.fetched) {
-                  return;
-                }
                 if (!span.textContent.trimEnd().endsWith("전")) {
                   return;
                 }
 
-                span.dataset.fetched = true;
-                let link =
-                  span.closest("a")?.href ||
-                  span.closest("#metadata-container").previousElementSibling.querySelector("a")
-                    .href;
+                let link = span.closest("#meta").querySelector("a").href;
                 let id = regex.exec(link)?.[1];
 
                 if (!id) {
                   return;
                 }
+                if (window.fetched.has(id)) {
+                  return;
+                }
+
+                window.fetched.add(id);
 
                 fetch(
                   `https://www.googleapis.com/youtube/v3/videos?id=${id}&key=${data.etc.youtubeAPI}&part=snippet`
@@ -384,9 +384,11 @@ function observeCallback(mutationList) {
             if (heatMap.style.backgroundColor) {
               return;
             }
+
             heatMap.style.backgroundColor = "black";
             heatMap.querySelector("svg > rect.ytp-heat-map-graph")?.setAttribute("fill-opacity", 1);
           });
+
           document.querySelector(".ytp-gradient-bottom")?.remove();
           return;
         }
