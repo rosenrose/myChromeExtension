@@ -11,7 +11,7 @@ numMap = {
 contextMenuElement = null;
 jamoRegex = /(?<=\{).+?(?=\})/;
 zipRegex = /(?<=\()(?<![?!=<]+)[^?!=<]+?(?=\))/g;
-regexMap = {};
+
 sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 document.addEventListener("keydown", (event) => {
@@ -135,32 +135,38 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
 chrome.storage.local.get("replace", (data) => {
   replaceJson = data.replace;
+
   replaceJson["ilbeReplace"].forEach((ilbe) => {
-    if (ilbe[0].includes("${")) {
-      regexMap[ilbe[0]] = new RegExp(
-        ilbe[0]
-          .replace("${ilbe}", replaceJson["ilbe"])
-          .replace("${endSuffix}", replaceJson["endSuffix"]),
-        "g"
-      );
-    } else {
-      regexMap[ilbe[0]] = new RegExp(ilbe[0], "g");
+    ilbe[0] = new RegExp(
+      ilbe[0].includes("${")
+        ? ilbe[0]
+            .replace("${ilbe}", replaceJson["ilbe"])
+            .replace("${endSuffix}", replaceJson["endSuffix"])
+        : ilbe[0],
+      "g"
+    );
+  });
+
+  replaceJson["regexList"].forEach((regex) => {
+    if (regex[1].match(zipRegex)) {
+      regex.push(regex[0]);
     }
+
+    regex[0] = new RegExp(regex[0], "g");
   });
-  replaceJson["replaceList"].forEach((replace) => {
-    regexMap[replace[0]] = new RegExp(replace[0], "g");
-    // if (replace[1].match(zipRegex)) {
-    //   console.log(replace);
-    // }
-  });
+
   replaceJson["ends"].forEach((end) => {
-    regexMap[end[0]] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
+    end[0] = new RegExp(`${end[0]}(?=${replaceJson["endSuffix"]}*$)`, "g");
   });
+
   Object.values(replaceJson["domainSpecific"]).forEach((value) => {
     value.forEach((replace) => {
-      regexMap[replace[0]] = new RegExp(replace[0], "g");
+      replace[0] = new RegExp(replace[0], "g");
     });
   });
+
+  replaceJson["tagExcept"] = new Set(replaceJson["tagExcept"]);
+  replaceJson["repDomain"] = new Set(replaceJson["repDomain"]);
 
   observer = new MutationObserver(observeCallback);
   observer.observe(document.body, {
@@ -225,15 +231,14 @@ function observeCallback(mutationList) {
           let cctv = document.querySelector("div.cctv_video_target");
 
           if (cctv) {
-            let width = window.cctvWidth || 1280;
+            let width = window.cctvWidth || 960;
             // console.log(cctv.videoWidth, cctv.videoHeight);
             // cctv.addEventListener("loadded", () => {
             //   let { videoWidth, videoHeight } = cctv;
             //   let multiple = width / videoWidth;
             //   let height = videoHeight * multiple;
-
             // });
-            let height = window.cctvHeight || 720;
+            let height = window.cctvHeight || 540;
 
             cctv.style.width = `${width}px`;
             cctv.style.height = `${height}px`;
@@ -421,65 +426,75 @@ function textReplace(element) {
     // console.log("dd", element, element?.nodeType);
     return;
   }
-
   // console.log(element, element?.nodeType);
   walk = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+
   while ((node = walk.nextNode())) {
     text = node.textContent;
-    if (!/[가-힣]/.test(text)) continue;
-    if (replaceJson["tagExcept"].includes(node.parentNode.tagName)) continue;
+
+    if (!/[가-힣]/.test(text)) {
+      continue;
+    }
+    if (replaceJson["tagExcept"].has(node.parentNode.tagName)) {
+      continue;
+    }
     // console.log(text.trim());
     // node.textContent = "a";
-    for (let end of replaceJson["ends"]) {
-      regex = regexMap[end[0]];
+    for (let [regex, sub] of replaceJson["ends"]) {
       if ((result = regex.exec(text))) {
-        node.textContent = text.replace(regex, end[1]);
+        node.textContent = text.replace(regex, sub);
         console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
         text = node.textContent;
       }
     }
-    for (let replace of replaceJson["replaceList"]) {
-      regex = regexMap[replace[0]];
+
+    for (let [word, sub] of replaceJson["wordList"]) {
+      if (text.includes(word)) {
+        node.textContent = text.replaceAll(word, sub);
+        console.log(`${text.trim()} (${word})\n-----\n${node.textContent.trim()}`);
+        text = node.textContent;
+      }
+    }
+
+    for (let [regex, sub, orignal] of replaceJson["regexList"]) {
       if ((result = regex.exec(text))) {
-        if ((jamo = jamoRegex.exec(replace[1]))) {
+        if ((jamo = jamoRegex.exec(sub))) {
           let [rep, start, end, repStart, repEnd] = jamo[0].split(",");
           let nfd = result[0].normalize("NFD");
-          let newNFD;
-          if (repStart) {
-            newNFD =
-              nfd.slice(0, start) + rep.normalize("NFD").slice(repStart, repEnd) + nfd.slice(end);
-          } else {
-            newNFD = nfd.slice(0, start) + rep.normalize("NFD") + nfd.slice(end);
-          }
+          let newNFD = repStart
+            ? nfd.slice(0, start) + rep.normalize("NFD").slice(repStart, repEnd) + nfd.slice(end)
+            : nfd.slice(0, start) + rep.normalize("NFD") + nfd.slice(end);
+
           node.textContent = text.replace(regex, newNFD.normalize());
-        } else if ((repZips = replace[1].match(zipRegex))) {
-          let orgZips = replace[0].match(zipRegex);
+        } else if ((repZips = sub.match(zipRegex))) {
+          let orgZips = orignal.match(zipRegex);
           let replaceText = [];
+
           for (let i = 1; i < result.length; i++) {
             let orgZip = orgZips[i - 1].split("|");
             let repZip = repZips[i - 1].split("|");
             let index = orgZip.indexOf(result[i]);
             replaceText.push(repZip[index]);
           }
-          let rest = replace[1].slice(replace[1].lastIndexOf(")") + 1);
+
+          let rest = sub.slice(sub.lastIndexOf(")") + 1);
           node.textContent = text.replace(regex, replaceText.join("") + rest);
         } else {
-          node.textContent = text.replace(regex, replace[1]);
+          node.textContent = text.replace(regex, sub);
         }
-        console.log(
-          `${text.trim()} (${replace[0]} -> ${result[0]})\n-----\n${node.textContent.trim()}`
-        );
+        console.log(`${text.trim()} (${regex} -> ${result[0]})\n-----\n${node.textContent.trim()}`);
         text = node.textContent;
       }
     }
 
-    if (replaceJson["repDomain"].includes(domain)) {
-      for (let replace of replaceJson["ilbeReplace"]) {
-        regex = regexMap[replace[0]];
+    if (replaceJson["repDomain"].has(domain)) {
+      for (let [regex, sub] of replaceJson["ilbeReplace"]) {
         if ((result = regex.exec(text))) {
-          if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep)))
+          if (result[1] && replaceJson["replaceExcept"].some((rep) => result[1].endsWith(rep))) {
             continue;
-          node.textContent = text.replace(regex, replace[1]);
+          }
+
+          node.textContent = text.replace(regex, sub);
           console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
           text = node.textContent;
         }
@@ -487,10 +502,9 @@ function textReplace(element) {
     }
 
     if (domain in replaceJson["domainSpecific"]) {
-      for (let replace of replaceJson["domainSpecific"][domain]) {
-        regex = regexMap[replace[0]];
+      for (let [regex, sub] of replaceJson["domainSpecific"][domain]) {
         if ((result = regex.exec(text))) {
-          node.textContent = text.replace(regex, replace[1]);
+          node.textContent = text.replace(regex, sub);
           console.log(`${text.trim()} (${result[0]})\n-----\n${node.textContent.trim()}`);
           text = node.textContent;
         }
